@@ -82,7 +82,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             io.read_parquet(in_file)
             .rename(columns={"id": "transaction_id"})
             .rename(columns={"amount": "amount_usd"})
-            .rename(columns={"use_chip": "trasaction_type"})
+            .rename(columns={"use_chip": "transaction_type"})
             .pipe(impute_online, "merchant_state")
             .pipe(impute_online, "zip")
             .pipe(impute_errors, "errors")

@@ -1,5 +1,11 @@
+"""Main entry point for transaction analysis pipeline."""
+
+from transaction_analysis.cli import data
+
+
 def main():
-    print("Hello from transaction-dataset-analysis!")
+    """Run the complete transaction analysis pipeline."""
+    data.main()
 
 
 if __name__ == "__main__":
