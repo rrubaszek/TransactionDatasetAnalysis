@@ -1,5 +1,3 @@
-"""Main EDA analysis class."""
-
 from pathlib import Path
 
 import pandas as pd
@@ -11,12 +9,16 @@ from transaction_analysis.eda.aggregations import (
     aggregate_transactions_by_user,
     calculate_risk_metrics,
 )
+from transaction_analysis.eda.anomalies import anomaly_analysis
+from transaction_analysis.eda.geoanalysis import plot_us_map
 from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
 from transaction_analysis.eda.visualizations import (
     plot_amount_distribution,
     plot_correlation_heatmap,
+    plot_credit_score_by_gender,
     plot_demographic_patterns,
-    plot_error_analysis,
+    plot_errors_and_darkweb,
+    plot_time_patterns,
     plot_top_mcc,
     plot_top_merchants,
     plot_transactions_over_time,
@@ -141,49 +143,84 @@ class TransactionAnalysis:
         try:
             print("Amount distribution...", end=" ")
             plot_amount_distribution(self.transactions, self.output_dir)
+            print("done")
         except Exception as e:
             print(f"{e}")
 
         try:
             print("Transactions over time...", end=" ")
             plot_transactions_over_time(self.transactions, self.output_dir)
+            print("done")
+        except Exception as e:
+            print(f"{e}")
+
+        try:
+            print("Time patterns (hour/dow)...", end=" ")
+            plot_time_patterns(self.transactions, self.output_dir)
+            print("done")
+        except Exception as e:
+            print(f"{e}")
+
+        try:
+            print("Errors and dark web...", end=" ")
+            plot_errors_and_darkweb(self.transactions, self.cards, self.output_dir)
+            print("done")
+        except Exception as e:
+            print(f"{e}")
+
+        try:
+            print("Credit score by gender...", end=" ")
+            plot_credit_score_by_gender(self.users, self.output_dir)
+            print("done")
         except Exception as e:
             print(f"{e}")
 
         try:
             print("Top merchants...", end=" ")
             plot_top_merchants(self.merchant_agg, self.output_dir, top_n=15)
+            print("done")
         except Exception as e:
             print(f"{e}")
 
         try:
             print("Top MCC codes...", end=" ")
             plot_top_mcc(self.mcc_agg, self.output_dir, top_n=15)
+            print("done")
         except Exception as e:
             print(f"{e}")
 
         try:
-            print("Top users...", end=" ")
+            print("User transaction distribution...", end=" ")
             plot_user_transaction_distribution(self.user_agg, self.output_dir)
-        except Exception as e:
-            print(f"{e}")
-
-        try:
-            print("Error analysis...", end=" ")
-            plot_error_analysis(self.transactions, self.output_dir)
-
+            print("done")
         except Exception as e:
             print(f"{e}")
 
         try:
             print("Correlation heatmap...", end=" ")
             plot_correlation_heatmap(self.user_agg, self.output_dir)
+            print("done")
         except Exception as e:
             print(f"{e}")
 
         try:
             print("Demographic patterns...", end=" ")
             plot_demographic_patterns(self.user_agg, self.output_dir)
+            print("done")
+        except Exception as e:
+            print(f"{e}")
+
+        try:
+            print("Anomaly detection...", end=" ")
+            self._user_agg, _ = anomaly_analysis(self.user_agg, self.output_dir)
+            print("done")
+        except Exception as e:
+            print(f"{e}")
+
+        try:
+            print("US merchant map...", end=" ")
+            plot_us_map(self.transactions, self.output_dir)
+            print("done")
         except Exception as e:
             print(f"{e}")
 

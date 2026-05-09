@@ -22,7 +22,7 @@ def main() -> None:
 
     print("Preprocessing complete.")
 
-    eda.main.run(dataset_dir=FRAUD_DATASET_DIR / "preprocessed", output_dir=PLOTS_DIR, force=False)
+    eda.main.run(dataset_dir=FRAUD_DATASET_DIR / "preprocessed", output_dir=PLOTS_DIR, force=True)
 
 
 if __name__ == "__main__":
