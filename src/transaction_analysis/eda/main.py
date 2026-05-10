@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 from transaction_analysis.eda.analysis import TransactionAnalysis
+from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
 
 
 def run(
@@ -28,8 +29,8 @@ def run(
 def main() -> None:
     """Run the EDA analysis with default paths."""
     run(
-        dataset_dir=Path(__file__).resolve().parents[3] / "dataset" / "cleaned",
-        output_dir=Path(__file__).resolve().parents[3] / "plots",
+        dataset_dir=FRAUD_DATASET_DIR / "cleaned",
+        output_dir=PLOTS_DIR,
     )
 
 
