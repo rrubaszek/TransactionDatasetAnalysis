@@ -101,7 +101,7 @@ def _geocode(
 def plot_us_map(
     transactions: pd.DataFrame,
     output_dir: Path,
-    amount_col: str = "amount_usd",
+    amount_col: str = "amount_cents_usd",
     city_col: str = "merchant_city",
     state_col: str = "merchant_state",
     top_n: int = 300,

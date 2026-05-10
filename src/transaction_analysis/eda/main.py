@@ -28,10 +28,7 @@ def run(
 
 def main() -> None:
     """Run the EDA analysis with default paths."""
-    run(
-        dataset_dir=FRAUD_DATASET_DIR / "cleaned",
-        output_dir=PLOTS_DIR,
-    )
+    run(dataset_dir=FRAUD_DATASET_DIR / "cleaned", output_dir=PLOTS_DIR, force=True)
 
 
 if __name__ == "__main__":

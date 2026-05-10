@@ -16,7 +16,7 @@ def plot_amount_distribution(
     bins: int = 80,
 ) -> None:
     """Raw and log-transformed transaction amount distributions."""
-    amounts = pd.to_numeric(transactions["amount_usd"], errors="coerce").dropna()
+    amounts = pd.to_numeric(transactions["amount_cents_usd"], errors="coerce").dropna()
     amounts = amounts[amounts > 0]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -49,7 +49,7 @@ def plot_transactions_over_time(
 
     monthly = (
         transactions.groupby("period")
-        .agg(txn_count=("transaction_id", "count"), avg_amount=("amount_usd", "mean"))
+        .agg(txn_count=("transaction_id", "count"), avg_amount=("amount_cents_usd", "mean"))
         .reset_index()
     )
 
@@ -209,15 +209,15 @@ def plot_user_transaction_distribution(
     axes[0, 0].set_ylabel("Number of Users")
     axes[0, 0].grid(alpha=0.3)
 
-    if "amount_sum" in user_agg.columns:
-        axes[0, 1].hist(user_agg["amount_sum"], bins=50, color="coral", edgecolor="black", alpha=0.7)
+    if "amount_cents_sum" in user_agg.columns:
+        axes[0, 1].hist(user_agg["amount_cents_sum"], bins=50, color="coral", edgecolor="black", alpha=0.7)
         axes[0, 1].set_title("Distribution of Total Amount per User", fontsize=11, fontweight="bold")
         axes[0, 1].set_xlabel("Total Amount ($)")
         axes[0, 1].set_ylabel("Number of Users")
         axes[0, 1].grid(alpha=0.3)
 
-    if "amount_mean" in user_agg.columns:
-        axes[1, 0].hist(user_agg["amount_mean"], bins=50, color="teal", edgecolor="black", alpha=0.7)
+    if "amount_cents_mean" in user_agg.columns:
+        axes[1, 0].hist(user_agg["amount_cents_mean"], bins=50, color="teal", edgecolor="black", alpha=0.7)
         axes[1, 0].set_title("Distribution of Average Amount per User", fontsize=11, fontweight="bold")
         axes[1, 0].set_xlabel("Average Amount ($)")
         axes[1, 0].set_ylabel("Number of Users")

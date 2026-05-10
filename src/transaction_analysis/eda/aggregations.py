@@ -31,7 +31,7 @@ def aggregate_transactions_by_user(
         transactions.groupby("client_id")
         .agg(
             {
-                "amount_usd": ["sum", "mean", "median", "std", "min", "max"],
+                "amount_cents_usd": ["sum", "mean", "median", "std", "min", "max"],
                 "date": ["min", "max"],
             }
         )
@@ -40,12 +40,12 @@ def aggregate_transactions_by_user(
 
     user_agg.columns = [
         "user_id",
-        "amount_sum",
-        "amount_mean",
-        "amount_median",
-        "amount_std",
-        "amount_min",
-        "amount_max",
+        "amount_cents_sum",
+        "amount_cents_mean",
+        "amount_cents_median",
+        "amount_cents_std",
+        "amount_cents_min",
+        "amount_cents_max",
         "first_txn_date",
         "last_txn_date",
     ]
@@ -119,12 +119,12 @@ def aggregate_transactions_by_user(
         card_agg = (
             cards.reset_index()
             .groupby("client_id")
-            .agg({"credit_limit_usd": "mean"})  # no "id" column — use size() instead
+            .agg({"credit_limit_cents_usd": "mean"})  # no "id" column — use size() instead
             .reset_index()
         )
         card_counts = cards.groupby("client_id").size().reset_index().rename(columns={0: "num_cards"})
         card_agg = card_agg.merge(card_counts, on="client_id")
-        card_agg = card_agg.rename(columns={"client_id": "user_id", "credit_limit_usd": "avg_credit_limit"})
+        card_agg = card_agg.rename(columns={"client_id": "user_id", "credit_limit_cents_usd": "avg_credit_limit"})
         user_agg = user_agg.merge(card_agg, on="user_id", how="left")
 
     return user_agg.sort_values("txn_count", ascending=False).reset_index(drop=True)
@@ -146,10 +146,10 @@ def aggregate_transactions_by_time(transactions: pd.DataFrame) -> pd.DataFrame:
     txn_counts = date_groups.size().reset_index()
     txn_counts.columns = ["date", "txn_count"]
 
-    amount_agg = date_groups["amount_usd"].agg(["sum", "mean", "std"]).reset_index()
-    amount_agg.columns = ["date", "amount_sum", "amount_mean", "amount_std"]
+    amount_cents_agg = date_groups["amount_cents_usd"].agg(["sum", "mean", "std"]).reset_index()
+    amount_cents_agg.columns = ["date", "amount_cents_sum", "amount_cents_mean", "amount_cents_std"]
 
-    time_agg = txn_counts.merge(amount_agg, on="date", how="left")
+    time_agg = txn_counts.merge(amount_cents_agg, on="date", how="left")
 
     if "errors" in txns.columns:
         error_agg = date_groups["errors"].apply(lambda x: (x.notna().sum() / len(x)) * 100).reset_index()
@@ -176,7 +176,7 @@ def aggregate_by_merchant(transactions: pd.DataFrame) -> pd.DataFrame:
         transactions.groupby("merchant_id")
         .agg(
             {
-                "amount_usd": ["sum", "mean", "std"],
+                "amount_cents_usd": ["sum", "mean", "std"],
                 "client_id": "nunique",
                 "card_id": "nunique",
             }
@@ -186,9 +186,9 @@ def aggregate_by_merchant(transactions: pd.DataFrame) -> pd.DataFrame:
 
     merchant_agg.columns = [
         "merchant_id",
-        "amount_sum",
-        "amount_mean",
-        "amount_std",
+        "amount_cents_sum",
+        "amount_cents_mean",
+        "amount_cents_std",
         "unique_customers",
         "unique_cards",
     ]
@@ -221,7 +221,7 @@ def aggregate_by_mcc(transactions: pd.DataFrame) -> pd.DataFrame:
         transactions.groupby("mcc")
         .agg(
             {
-                "amount_usd": ["sum", "mean", "std"],
+                "amount_cents_usd": ["sum", "mean", "std"],
                 "client_id": "nunique",
             }
         )
@@ -230,9 +230,9 @@ def aggregate_by_mcc(transactions: pd.DataFrame) -> pd.DataFrame:
 
     mcc_agg.columns = [
         "mcc",
-        "amount_sum",
-        "amount_mean",
-        "amount_std",
+        "amount_cents_sum",
+        "amount_cents_mean",
+        "amount_cents_std",
         "unique_customers",
     ]
 
@@ -257,8 +257,10 @@ def calculate_risk_metrics(
     result = user_agg.copy()
 
     # Transaction volatility (coefficient of variation of amounts)
-    if "amount_std" in result.columns and "amount_mean" in result.columns:
-        result["amount_volatility"] = (result["amount_std"] / (result["amount_mean"] + 1e-6)).fillna(0)
+    if "amount_cents_std" in result.columns and "amount_cents_mean" in result.columns:
+        result["amount_cents_volatility"] = (result["amount_cents_std"] / (result["amount_cents_mean"] + 1e-6)).fillna(
+            0
+        )
 
     # Debt to income ratio
     if "total_debt" in result.columns and "yearly_income" in result.columns:

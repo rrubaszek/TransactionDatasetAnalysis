@@ -88,13 +88,13 @@ class TransactionAnalysis:
         print(f"  Unique users: {self.transactions['client_id'].nunique():,}")
         print(f"  Unique cards: {self.transactions['card_id'].nunique():,}")
 
-        amounts = pd.to_numeric(self.transactions["amount_usd"], errors="coerce").dropna()
+        amounts_dollars = pd.to_numeric(self.transactions["amount_cents_usd"], errors="coerce").dropna() / 100
         print("\n  Amount statistics:")
-        print(f"    Mean: ${amounts.mean():,.2f}")
-        print(f"    Median: ${amounts.median():,.2f}")
-        print(f"    Std Dev: ${amounts.std():,.2f}")
-        print(f"    Min: ${amounts.min():,.2f}")
-        print(f"    Max: ${amounts.max():,.2f}")
+        print(f"    Mean: ${amounts_dollars.mean():,.2f}")
+        print(f"    Median: ${amounts_dollars.median():,.2f}")
+        print(f"    Std Dev: ${amounts_dollars.std():,.2f}")
+        print(f"    Min: ${amounts_dollars.min():,.2f}")
+        print(f"    Max: ${amounts_dollars.max():,.2f}")
 
         print("\nUSER STATISTICS:")
         print(f"  Total users: {len(self.user_agg):,}")
@@ -117,7 +117,7 @@ class TransactionAnalysis:
         for idx, row in top_merchants.iterrows():
             print(
                 f"  {idx + 1:2d}. Merchant {int(row['merchant_id']):6d} - {int(row['txn_count']):6,} txns, \
-                ${row['amount_mean']:8,.2f} avg"
+                ${row['amount_cents_mean']:8,.2f} avg"
             )
 
         print(f"\nTop {n} MCC Codes by Transaction Count:")
@@ -133,7 +133,7 @@ class TransactionAnalysis:
         for idx, row in top_users.iterrows():
             print(
                 f"  {idx + 1:2d}. User {int(row['user_id']):6d} - {int(row['txn_count']):6,} txns, \
-                ${row['amount_sum']:12,.2f} total"
+                ${row['amount_cents_sum'] / 100:12,.2f} / 100 total"
             )
 
         print("\n" + "=" * 70 + "\n")

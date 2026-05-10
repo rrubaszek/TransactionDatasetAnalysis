@@ -2,14 +2,15 @@ import os
 from pathlib import Path
 
 import pandas as pd
-import pyarrow as pa
 
 from transaction_analysis.data import io
 from transaction_analysis.paths import FRAUD_DATASET_DIR
 
 
-def currency_to_decimal(df: pd.DataFrame, col: str) -> pd.DataFrame:
-    df[col] = df[col].replace(r"[\$,]", "", regex=True).str.strip().astype(pd.ArrowDtype(pa.decimal32(9, 2)))
+def currency_to_int32(df: pd.DataFrame, col: str) -> pd.DataFrame:
+    df[col] = df[col].replace(r"[\$,]", "", regex=True).str.strip().astype("float32")
+    df[col] = df[col] * 100
+    df[col] = df[col].astype("int32")
     return df
 
 
@@ -57,7 +58,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .pipe(str_to_datetime, "date")
             .pipe(int64_downcast, "client_id")
             .pipe(int64_downcast, "card_id")
-            .pipe(currency_to_decimal, "amount")
+            .pipe(currency_to_int32, "amount")
             .pipe(str_to_category, "use_chip")
             .pipe(int64_downcast, "merchant_id")
             .pipe(str_to_category, "merchant_city")
@@ -82,9 +83,9 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .pipe(int64_downcast, "birth_year")
             .pipe(int64_downcast, "birth_month")
             .pipe(str_to_category, "gender")
-            .pipe(currency_to_decimal, "per_capita_income")
-            .pipe(currency_to_decimal, "yearly_income")
-            .pipe(currency_to_decimal, "total_debt")
+            .pipe(currency_to_int32, "per_capita_income")
+            .pipe(currency_to_int32, "yearly_income")
+            .pipe(currency_to_int32, "total_debt")
             .pipe(int64_downcast, "credit_score")
             .pipe(int64_downcast, "num_credit_cards")
             .set_index("id")
@@ -106,7 +107,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .pipe(int64_downcast, "cvv")
             .pipe(yes_no_to_bool, "has_chip")
             .pipe(int64_downcast, "num_cards_issued")
-            .pipe(currency_to_decimal, "credit_limit")
+            .pipe(currency_to_int32, "credit_limit")
             .pipe(month_year_to_datetime, "acct_open_date")
             .pipe(int64_downcast, "year_pin_last_changed")
             .pipe(yes_no_to_bool, "card_on_dark_web")

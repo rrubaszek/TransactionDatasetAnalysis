@@ -11,7 +11,7 @@ DATASETS_TO_DOWNLOAD: Final[dict[str, Path]] = {
 }
 
 
-def download_competition_datasets(datasets: dict[str, Path] = DATASETS_TO_DOWNLOAD) -> None:
+def download_datasets(datasets: dict[str, Path] = DATASETS_TO_DOWNLOAD) -> None:
     for dataset_name, dataset_path in datasets.items():
         if not os.path.exists(dataset_path):
             os.makedirs(dataset_path, exist_ok=True)
@@ -22,4 +22,4 @@ def run(force: bool = False) -> None:
     if not force and all(dataset_path.exists() for dataset_path in DATASETS_TO_DOWNLOAD.values()):
         print("Datasets already downloaded, skipping. To force re-run, set force=True")
     else:
-        download_competition_datasets(datasets=DATASETS_TO_DOWNLOAD)
+        download_datasets(datasets=DATASETS_TO_DOWNLOAD)

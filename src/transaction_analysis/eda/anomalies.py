@@ -42,7 +42,7 @@ def anomaly_analysis(
     plt.close()
 
     # Violin: avg_amount by anomaly label
-    avg_col = "avg_amount" if "avg_amount" in user_agg.columns else "amount_mean"
+    avg_col = "avg_amount" if "avg_amount" in user_agg.columns else "amount_cents_mean"
     fig, ax = plt.subplots(figsize=(14, 5))
     sns.violinplot(
         data=user_agg,
