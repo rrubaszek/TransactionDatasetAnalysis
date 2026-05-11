@@ -10,14 +10,14 @@ def main() -> None:
 
     print("Preprocessing data...")
     preprocess.run(
-        dataset_in_dir=FRAUD_DATASET_DIR / "raw", dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed", force=False
+        dataset_in_dir=FRAUD_DATASET_DIR / "raw", dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed", force=True
     )
 
     print("Cleaning data...")
     cleanup.run(
         dataset_in_dir=FRAUD_DATASET_DIR / "preprocessed",
-        dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed",
-        force=False,
+        dataset_out_dir=FRAUD_DATASET_DIR / "cleaned",
+        force=True,
     )
 
     print("Preprocessing complete.")
