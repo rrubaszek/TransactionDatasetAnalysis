@@ -65,7 +65,6 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .pipe(zip_to_category, "zip")
             .pipe(int64_downcast, "mcc")
             .pipe(str_to_category, "errors")
-            .set_index("id")
             .pipe(io.to_parquet, out_file)
         )
 
@@ -87,7 +86,6 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .pipe(currency_to_decimal, "total_debt")
             .pipe(int64_downcast, "credit_score")
             .pipe(int64_downcast, "num_credit_cards")
-            .set_index("id")
             .pipe(io.to_parquet, out_file)
         )
 
@@ -110,7 +108,6 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .pipe(month_year_to_datetime, "acct_open_date")
             .pipe(int64_downcast, "year_pin_last_changed")
             .pipe(yes_no_to_bool, "card_on_dark_web")
-            .set_index("id")
             .pipe(io.to_parquet, out_file)
         )
 
@@ -125,7 +122,6 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .rename("description")
             .reset_index()
             .pipe(int64_downcast, "id")
-            .set_index("id")
             .pipe(io.to_parquet, out_file)
         )
 
@@ -142,7 +138,6 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             .reset_index()
             .pipe(int64_downcast, "id")
             .pipe(yes_no_to_bool, "fraud")
-            .set_index("id")
             .pipe(io.to_parquet, out_file)
         )
         # fmt: on
