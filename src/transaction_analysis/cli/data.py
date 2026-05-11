@@ -20,9 +20,8 @@ def main() -> None:
         force=False,
     )
 
-    print("Preprocessing complete.")
-
-    eda.main.run(dataset_dir=FRAUD_DATASET_DIR / "preprocessed", output_dir=PLOTS_DIR, force=True)
+    print("Running EDA...")
+    eda.run(dataset_dir=FRAUD_DATASET_DIR / "preprocessed", output_dir=PLOTS_DIR, force=True)
 
 
 if __name__ == "__main__":
