@@ -11,7 +11,7 @@ from transaction_analysis.eda.aggregations import (
 )
 from transaction_analysis.eda.anomalies import anomaly_analysis
 from transaction_analysis.eda.geoanalysis import plot_us_map
-from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
+from transaction_analysis.eda.utils import load_cleaned_data
 from transaction_analysis.eda.visualizations import (
     plot_amount_distribution,
     plot_correlation_heatmap,
@@ -33,9 +33,6 @@ class TransactionAnalysis:
 
         self.dataset_dir = dataset_dir
         self.output_dir = output_dir
-        self.output_dir.mkdir(exist_ok=True, parents=True)
-
-        configure_plotting()
 
         self.transactions, self.users, self.cards = load_cleaned_data(self.dataset_dir)
 
