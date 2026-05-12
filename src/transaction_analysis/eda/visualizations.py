@@ -1,5 +1,3 @@
-"""Visualization functions for EDA."""
-
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -7,6 +5,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from transaction_analysis.eda.geoanalysis import (
+    load_us_geometry,
+    prepare_us_transaction_geo_data,
+    scale_bubbles,
+)
 from transaction_analysis.eda.utils import save_figure
 
 
@@ -342,4 +345,93 @@ def plot_demographic_patterns(
 
     plt.tight_layout()
     save_figure("demographic_patterns.png", output_dir)
+    plt.close()
+
+
+def plot_us_transaction_map(
+    transactions: pd.DataFrame,
+    output_dir: Path,
+    amount_col: str = "amount_usd",
+    city_col: str = "merchant_city",
+    state_col: str = "merchant_state",
+    top_n: int = 300,
+    force: bool = False,
+) -> None:
+
+    geo_df = prepare_us_transaction_geo_data(
+        transactions=transactions,
+        amount_col=amount_col,
+        city_col=city_col,
+        state_col=state_col,
+        top_n=top_n,
+    )
+
+    us = load_us_geometry(force_download=force)
+
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))
+
+    for ax in axes:
+        us.plot(
+            ax=ax,
+            color="#e8e8e8",
+            edgecolor="#aaaaaa",
+            linewidth=0.6,
+            zorder=1,
+        )
+
+        ax.set_xlim(-125, -66)
+        ax.set_ylim(24, 50)
+
+        ax.grid(alpha=0.2)
+
+    sizes = scale_bubbles(
+        geo_df["txn_count"],
+    )
+
+    sc0 = axes[0].scatter(
+        geo_df["lon"],
+        geo_df["lat"],
+        s=sizes,
+        c=geo_df["txn_count"],
+        cmap="YlOrRd",
+        alpha=0.7,
+        edgecolors="white",
+        linewidths=0.4,
+        zorder=3,
+    )
+
+    fig.colorbar(
+        sc0,
+        ax=axes[0],
+        label="Transaction Count",
+    )
+
+    axes[0].set_title("Transaction Volume by Merchant Location")
+
+    sizes = scale_bubbles(
+        geo_df["avg_amount"],
+    )
+
+    sc1 = axes[1].scatter(
+        geo_df["lon"],
+        geo_df["lat"],
+        s=sizes,
+        c=geo_df["avg_amount"],
+        cmap="Blues",
+        alpha=0.7,
+        edgecolors="white",
+        linewidths=0.4,
+        zorder=3,
+    )
+
+    fig.colorbar(
+        sc1,
+        ax=axes[1],
+        label="Average Transaction Amount ($)",
+    )
+
+    axes[1].set_title("Average Transaction Amount by Merchant Location")
+
+    plt.tight_layout()
+    save_figure("us_merchant_map.png", output_dir)
     plt.close()

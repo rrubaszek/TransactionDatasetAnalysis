@@ -10,7 +10,6 @@ from transaction_analysis.eda.aggregations import (
     calculate_risk_metrics,
 )
 from transaction_analysis.eda.anomalies import anomaly_analysis
-from transaction_analysis.eda.geoanalysis import plot_us_map
 from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
 from transaction_analysis.eda.visualizations import (
     plot_amount_distribution,
@@ -23,6 +22,7 @@ from transaction_analysis.eda.visualizations import (
     plot_top_mcc,
     plot_top_merchants,
     plot_transactions_over_time,
+    plot_us_transaction_map,
     plot_user_transaction_distribution,
 )
 from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
@@ -204,12 +204,12 @@ class TransactionAnalysis:
         anomalous_user_agg, _ = anomaly_analysis(self.user_agg)
         plot_anomalies(anomalous_user_agg, self.output_dir)
 
-    def plot_us_map(self, force: bool = False) -> None:
-        out_file = self.output_dir / "us_map.png"
+    def plot_us_transaction_map(self, force: bool = False) -> None:
+        out_file = self.output_dir / "us_transaction_map.png"
         if out_file.exists() and not force:
-            print("US merchant map already plotted, skipping. Use `force=True` to re-run.")
+            print("US transaction map already plotted, skipping. Use `force=True` to re-run.")
             return
-        plot_us_map(self.transactions, self.output_dir)
+        plot_us_transaction_map(self.transactions, self.output_dir, force=force)
 
     def run(self, force: bool = False) -> None:
         self.print_summary_statistics()
@@ -225,7 +225,7 @@ class TransactionAnalysis:
         self.plot_correlation_heatmap(force=force)
         self.plot_demographic_patterns(force=force)
         self.plot_anomalies(force=force)
-        self.plot_us_map(force=force)
+        self.plot_us_transaction_map(force=force)
         print("Analysis complete. Visualizations saved to:", self.output_dir)
 
 
@@ -249,4 +249,4 @@ if __name__ == "__main__":
     analysis.plot_correlation_heatmap(force=True)
     analysis.plot_demographic_patterns(force=True)
     analysis.plot_anomalies(force=True)
-    analysis.plot_us_map(force=True)
+    analysis.plot_us_transaction_map(force=True)
