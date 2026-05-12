@@ -4,7 +4,6 @@ from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
 
 
 def main() -> None:
-
     print("Downloading datasets...")
     bootstrap.run(force=False)
 
@@ -22,7 +21,7 @@ def main() -> None:
 
     print("Preprocessing complete.")
 
-    eda.main.run(dataset_dir=FRAUD_DATASET_DIR / "preprocessed", output_dir=PLOTS_DIR, force=True)
+    eda.main.run(dataset_dir=FRAUD_DATASET_DIR / "cleaned", output_dir=PLOTS_DIR, force=True)
 
 
 if __name__ == "__main__":

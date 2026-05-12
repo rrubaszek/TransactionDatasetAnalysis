@@ -1,15 +1,14 @@
 import os
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
-import pyarrow as pa
 
-from transaction_analysis.data import io
 from transaction_analysis.paths import FRAUD_DATASET_DIR
 
 
-def currency_to_decimal(df: pd.DataFrame, col: str) -> pd.DataFrame:
-    df[col] = df[col].replace(r"[\$,]", "", regex=True).str.strip().astype(pd.ArrowDtype(pa.decimal32(9, 2)))
+def currency_to_float32(df: pd.DataFrame, col: str) -> pd.DataFrame:
+    df[col] = df[col].replace(r"[\$,]", "", regex=True).str.strip().astype("float32")
     return df
 
 
@@ -18,8 +17,10 @@ def str_to_datetime(df: pd.DataFrame, col: str) -> pd.DataFrame:
     return df
 
 
-def int64_downcast(df: pd.DataFrame, col: str) -> pd.DataFrame:
-    df[col] = pd.to_numeric(df[col], downcast="unsigned")
+def try_downcast(
+    df: pd.DataFrame, col: str, downcast: Literal["integer", "signed", "unsigned", "float"]
+) -> pd.DataFrame:
+    df[col] = pd.to_numeric(df[col], downcast=downcast)
     return df
 
 
@@ -52,20 +53,20 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             return
 
         (
-            io.read_csv(in_file)
-            .pipe(int64_downcast, "id")
+            pd.read_csv(in_file)
+            .pipe(try_downcast, "id", "unsigned")
             .pipe(str_to_datetime, "date")
-            .pipe(int64_downcast, "client_id")
-            .pipe(int64_downcast, "card_id")
-            .pipe(currency_to_decimal, "amount")
+            .pipe(try_downcast, "client_id", "unsigned")
+            .pipe(try_downcast, "card_id", "unsigned")
+            .pipe(currency_to_float32, "amount")
             .pipe(str_to_category, "use_chip")
-            .pipe(int64_downcast, "merchant_id")
+            .pipe(try_downcast, "merchant_id", "unsigned")
             .pipe(str_to_category, "merchant_city")
             .pipe(str_to_category, "merchant_state")
             .pipe(zip_to_category, "zip")
-            .pipe(int64_downcast, "mcc")
+            .pipe(try_downcast, "mcc", "unsigned")
             .pipe(str_to_category, "errors")
-            .pipe(io.to_parquet, out_file)
+            .to_parquet(out_file)
         )
 
     def process_users(in_file: Path, out_file: Path) -> None:
@@ -74,19 +75,19 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             return
 
         (
-            io.read_csv(in_file)
-            .pipe(int64_downcast, "id")
-            .pipe(int64_downcast, "current_age")
-            .pipe(int64_downcast, "retirement_age")
-            .pipe(int64_downcast, "birth_year")
-            .pipe(int64_downcast, "birth_month")
+            pd.read_csv(in_file)
+            .pipe(try_downcast, "id", "unsigned")
+            .pipe(try_downcast, "current_age", "unsigned")
+            .pipe(try_downcast, "retirement_age", "unsigned")
+            .pipe(try_downcast, "birth_year", "unsigned")
+            .pipe(try_downcast, "birth_month", "unsigned")
             .pipe(str_to_category, "gender")
-            .pipe(currency_to_decimal, "per_capita_income")
-            .pipe(currency_to_decimal, "yearly_income")
-            .pipe(currency_to_decimal, "total_debt")
-            .pipe(int64_downcast, "credit_score")
-            .pipe(int64_downcast, "num_credit_cards")
-            .pipe(io.to_parquet, out_file)
+            .pipe(currency_to_float32, "per_capita_income")
+            .pipe(currency_to_float32, "yearly_income")
+            .pipe(currency_to_float32, "total_debt")
+            .pipe(try_downcast, "credit_score", "signed")
+            .pipe(try_downcast, "num_credit_cards", "unsigned")
+            .to_parquet(out_file)
         )
 
     def process_cards(in_file: Path, out_file: Path) -> None:
@@ -95,20 +96,20 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             return
 
         (
-            io.read_csv(in_file)
-            .pipe(int64_downcast, "id")
-            .pipe(int64_downcast, "client_id")
+            pd.read_csv(in_file)
+            .pipe(try_downcast, "id", "unsigned")
+            .pipe(try_downcast, "client_id", "unsigned")
             .pipe(str_to_category, "card_brand")
             .pipe(str_to_category, "card_type")
             .pipe(month_year_to_datetime, "expires")
-            .pipe(int64_downcast, "cvv")
+            .pipe(try_downcast, "cvv", "unsigned")
             .pipe(yes_no_to_bool, "has_chip")
-            .pipe(int64_downcast, "num_cards_issued")
-            .pipe(currency_to_decimal, "credit_limit")
+            .pipe(try_downcast, "num_cards_issued", "unsigned")
+            .pipe(currency_to_float32, "credit_limit")
             .pipe(month_year_to_datetime, "acct_open_date")
-            .pipe(int64_downcast, "year_pin_last_changed")
+            .pipe(try_downcast, "year_pin_last_changed", "unsigned")
             .pipe(yes_no_to_bool, "card_on_dark_web")
-            .pipe(io.to_parquet, out_file)
+            .to_parquet(out_file)
         )
 
     def process_mcc_codes(in_file: Path, out_file: Path) -> None:
@@ -117,12 +118,12 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
             return
 
         (
-            io.read_json(in_file, typ="series")
+            pd.read_json(in_file, typ="series")
             .rename_axis("id")
             .rename("description")
             .reset_index()
-            .pipe(int64_downcast, "id")
-            .pipe(io.to_parquet, out_file)
+            .pipe(try_downcast, "id", "unsigned")
+            .to_parquet(out_file)
         )
 
     def process_fraud_labels(in_file: Path, out_file: Path) -> None:
@@ -132,13 +133,13 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
         # fmt: off
         (
-            io.read_json(in_file)
+            pd.read_json(in_file)
             .rename_axis("id")
             .rename(columns={"target": "fraud"})
             .reset_index()
-            .pipe(int64_downcast, "id")
+            .pipe(try_downcast, "id", "unsigned")
             .pipe(yes_no_to_bool, "fraud")
-            .pipe(io.to_parquet, out_file)
+            .to_parquet(out_file)
         )
         # fmt: on
 
