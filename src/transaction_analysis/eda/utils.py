@@ -31,4 +31,5 @@ def save_figure(filename: str, output_dir: Path = Path("plots")) -> None:
     output_dir.mkdir(exist_ok=True, parents=True)
     filepath = output_dir / filename
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
+    plt.show()
     print(f"Saved: {filepath}")

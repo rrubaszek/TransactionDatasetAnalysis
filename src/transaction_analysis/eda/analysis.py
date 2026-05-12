@@ -27,6 +27,8 @@ from transaction_analysis.eda.visualizations import (
 )
 from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
 
+"""Entry point for EDA analysis."""
+
 
 class TransactionAnalysis:
     def __init__(self, dataset_dir: Path, output_dir: Path):
