@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Final
 
-PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parents[2]
+PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
 DATASET_DIR: Final[Path] = PROJECT_ROOT / "dataset"
 
 FRAUD_DATASET_DIR: Final[Path] = DATASET_DIR / "fraud-transactions"

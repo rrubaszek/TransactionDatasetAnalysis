@@ -1,10 +1,13 @@
 """Utility functions for EDA."""
 
+import logging
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+
+logger = logging.getLogger(__name__)
 
 
 def load_cleaned_data(dataset_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -32,4 +35,4 @@ def save_figure(filename: str, output_dir: Path = Path("plots")) -> None:
     filepath = output_dir / filename
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
     plt.show()
-    print(f"Saved: {filepath}")
+    logger.info("Saved: %s", filepath)

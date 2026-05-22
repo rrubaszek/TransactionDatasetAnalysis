@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,8 @@ from transaction_analysis.eda.visualizations import (
 )
 
 """Entry point for EDA analysis."""
+
+logger = logging.getLogger(__name__)
 
 
 class TransactionAnalysis:
@@ -138,7 +141,7 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
     analysis.print_top_items(n=10)
 
     if not force and any(plots_out_dir.iterdir()):
-        print(f"Plots already exist in {plots_out_dir}, skipping. Use `force=True` to re-run.")
+        logger.info("Plots already exist in %s, skipping. Use `force=True` to re-run.", plots_out_dir)
         return
 
     analysis.plot_graph(plot_amount_distribution, analysis.transactions)
@@ -155,4 +158,4 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
     anomalous_user_agg, _ = anomaly_analysis(analysis.user_agg)
     analysis.plot_graph(plot_anomalies, anomalous_user_agg)
     analysis.plot_graph(plot_us_map, analysis.transactions)
-    print("Analysis complete. Visualizations saved to:", plots_out_dir)
+    logger.info("Analysis complete. Visualizations saved to: %s", plots_out_dir)

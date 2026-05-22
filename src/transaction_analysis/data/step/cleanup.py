@@ -1,8 +1,11 @@
+import logging
 import os
 from collections.abc import Container
 from pathlib import Path
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def datetime_to_date(df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -41,7 +44,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def cleanup_cards(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Cards already cleaned, skipping. Use `force=True` to re-run.")
+            logger.info("Cards already cleaned, skipping. Use `force=True` to re-run.")
             return
 
         (
@@ -56,21 +59,21 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def cleanup_mcc(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("MCC codes already cleaned, skipping. Use `force=True` to re-run.")
+            logger.info("MCC codes already cleaned, skipping. Use `force=True` to re-run.")
             return
 
         (pd.read_parquet(in_file).pipe(assert_no_missing_values).to_parquet(out_file))
 
     def cleanup_fraud_labels(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Fraud labels already cleaned, skipping. Use `force=True` to re-run.")
+            logger.info("Fraud labels already cleaned, skipping. Use `force=True` to re-run.")
             return
 
         (pd.read_parquet(in_file).pipe(assert_no_missing_values).to_parquet(out_file))
 
     def cleanup_transactions(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Transactions already cleaned, skipping. Use `force=True` to re-run.")
+            logger.info("Transactions already cleaned, skipping. Use `force=True` to re-run.")
             return
 
         (
@@ -84,7 +87,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def cleanup_users(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Users already cleaned, skipping. Use `force=True` to re-run.")
+            logger.info("Users already cleaned, skipping. Use `force=True` to re-run.")
             return
 
         (
