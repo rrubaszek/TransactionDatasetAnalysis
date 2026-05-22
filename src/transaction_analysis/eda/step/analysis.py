@@ -27,7 +27,6 @@ from transaction_analysis.eda.visualizations import (
     plot_transactions_over_time,
     plot_user_transaction_distribution,
 )
-from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
 
 """Entry point for EDA analysis."""
 
@@ -157,7 +156,3 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
     analysis.plot_graph(plot_anomalies, anomalous_user_agg)
     analysis.plot_graph(plot_us_map, analysis.transactions)
     print("Analysis complete. Visualizations saved to:", plots_out_dir)
-
-
-if __name__ == "__main__":
-    run(dataset_in_dir=FRAUD_DATASET_DIR / "cleaned", plots_out_dir=PLOTS_DIR, force=True)

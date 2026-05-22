@@ -1,5 +1,5 @@
-from transaction_analysis.data import bootstrap, cleanup, preprocess
-from transaction_analysis.eda import analysis
+from transaction_analysis.data.step import bootstrap, cleanup, preprocess
+from transaction_analysis.eda.step import analysis
 from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
 
 

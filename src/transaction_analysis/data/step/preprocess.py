@@ -4,8 +4,6 @@ from typing import Literal
 
 import pandas as pd
 
-from transaction_analysis.paths import FRAUD_DATASET_DIR
-
 
 def currency_to_float32(df: pd.DataFrame, col: str) -> pd.DataFrame:
     df[col] = df[col].replace(r"[\$,]", "", regex=True).str.strip().astype("float32")
@@ -165,11 +163,3 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
         dataset_out_dir / "fraud_labels.parquet",
     )
     # fmt: on
-
-
-if __name__ == "__main__":
-    run(
-        dataset_in_dir=FRAUD_DATASET_DIR / "raw",
-        dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed",
-        force=True,
-    )

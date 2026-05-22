@@ -4,8 +4,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from transaction_analysis.paths import FRAUD_DATASET_DIR
-
 
 def datetime_to_date(df: pd.DataFrame, col: str) -> pd.DataFrame:
     df[col] = df[col].dt.date
@@ -106,7 +104,3 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
     cleanup_fraud_labels(dataset_in_dir / "fraud_labels.parquet", dataset_out_dir / "fraud_labels.parquet")
     cleanup_transactions(dataset_in_dir / "transactions.parquet", dataset_out_dir / "transactions.parquet")
     cleanup_users(dataset_in_dir / "users.parquet", dataset_out_dir / "users.parquet")
-
-
-if __name__ == "__main__":
-    run(Path(FRAUD_DATASET_DIR / "preprocessed"), Path(FRAUD_DATASET_DIR / "cleaned"), force=True)
