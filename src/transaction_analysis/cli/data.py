@@ -1,5 +1,5 @@
 from transaction_analysis.data import bootstrap, cleanup, preprocess
-from transaction_analysis.eda.analysis import TransactionAnalysis
+from transaction_analysis.eda import analysis
 from transaction_analysis.paths import FRAUD_DATASET_DIR, PLOTS_DIR
 
 
@@ -9,7 +9,7 @@ def main() -> None:
 
     print("Preprocessing data...")
     preprocess.run(
-        dataset_in_dir=FRAUD_DATASET_DIR / "raw", dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed", force=True
+        dataset_in_dir=FRAUD_DATASET_DIR / "raw", dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed", force=False
     )
     print("Preprocessing complete.")
 
@@ -17,12 +17,12 @@ def main() -> None:
     cleanup.run(
         dataset_in_dir=FRAUD_DATASET_DIR / "preprocessed",
         dataset_out_dir=FRAUD_DATASET_DIR / "cleaned",
-        force=True,
+        force=False,
     )
     print("Cleaning complete.")
 
     print("Running analysis...")
-    TransactionAnalysis(dataset_dir=FRAUD_DATASET_DIR / "cleaned", output_dir=PLOTS_DIR).run(force=True)
+    analysis.run(dataset_in_dir=FRAUD_DATASET_DIR / "cleaned", plots_out_dir=PLOTS_DIR, force=True)
     print("Analysis complete.")
 
 

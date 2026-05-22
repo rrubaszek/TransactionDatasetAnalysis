@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -126,127 +128,36 @@ class TransactionAnalysis:
                 ${row['amount_sum']:12,.2f} total"
             )
 
-    def plot_amount_distribution(self, force: bool = False) -> None:
-        out_file = self.output_dir / "amount_distribution.png"
-        if out_file.exists() and not force:
-            print("Amount distribution already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_amount_distribution(self.transactions, self.output_dir)
+    def plot_graph(self, plot_fn: Callable[..., None], *args: Any, **kwargs: Any) -> None:
+        """Run ``plot_fn(*args, self.output_dir, **kwargs)``."""
+        plot_fn(*args, self.output_dir, **kwargs)
 
-    def plot_transactions_over_time(self, force: bool = False) -> None:
-        out_file = self.output_dir / "transactions_over_time.png"
-        if out_file.exists() and not force:
-            print("Transactions over time already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_transactions_over_time(self.transactions, self.output_dir)
 
-    def plot_time_patterns(self, force: bool = False) -> None:
-        out_file = self.output_dir / "time_patterns.png"
-        if out_file.exists() and not force:
-            print("Time patterns already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_time_patterns(self.transactions, self.output_dir)
+def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
+    analysis = TransactionAnalysis(dataset_dir=dataset_in_dir, output_dir=plots_out_dir)
+    analysis.print_summary_statistics()
+    analysis.print_top_items(n=10)
 
-    def plot_errors_and_darkweb(self, force: bool = False) -> None:
-        out_file = self.output_dir / "errors_and_darkweb.png"
-        if out_file.exists() and not force:
-            print("Errors and dark web already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_errors_and_darkweb(self.transactions, self.cards, self.output_dir)
+    if not force and any(plots_out_dir.iterdir()):
+        print(f"Plots already exist in {plots_out_dir}, skipping. Use `force=True` to re-run.")
+        return
 
-    def plot_credit_score_by_gender(self, force: bool = False) -> None:
-        out_file = self.output_dir / "credit_score_by_gender.png"
-        if out_file.exists() and not force:
-            print("Credit score by gender already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_credit_score_by_gender(self.users, self.output_dir)
+    analysis.plot_graph(plot_amount_distribution, analysis.transactions)
+    analysis.plot_graph(plot_transactions_over_time, analysis.transactions)
+    analysis.plot_graph(plot_time_patterns, analysis.transactions)
+    analysis.plot_graph(plot_errors_and_darkweb, analysis.transactions, analysis.cards)
+    analysis.plot_graph(plot_credit_score_by_gender, analysis.users)
+    analysis.plot_graph(plot_top_merchants, analysis.merchant_agg, top_n=15)
+    analysis.plot_graph(plot_top_mcc, analysis.mcc_agg, top_n=15)
+    analysis.plot_graph(plot_user_transaction_distribution, analysis.user_agg)
+    analysis.plot_graph(plot_correlation_heatmap, analysis.user_agg)
+    analysis.plot_graph(plot_demographic_patterns, analysis.user_agg)
 
-    def plot_top_merchants(self, top_n: int = 15, force: bool = False) -> None:
-        out_file = self.output_dir / "top_merchants.png"
-        if out_file.exists() and not force:
-            print("Top merchants already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_top_merchants(self.merchant_agg, self.output_dir, top_n=top_n)
-
-    def plot_top_mcc(self, top_n: int = 15, force: bool = False) -> None:
-        out_file = self.output_dir / "top_mcc.png"
-        if out_file.exists() and not force:
-            print("Top MCC codes already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_top_mcc(self.mcc_agg, self.output_dir, top_n=top_n)
-
-    def plot_user_transaction_distribution(self, force: bool = False) -> None:
-        out_file = self.output_dir / "user_transaction_distribution.png"
-        if out_file.exists() and not force:
-            print("User transaction distribution already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_user_transaction_distribution(self.user_agg, self.output_dir)
-
-    def plot_correlation_heatmap(self, force: bool = False) -> None:
-        out_file = self.output_dir / "correlation_heatmap.png"
-        if out_file.exists() and not force:
-            print("Correlation heatmap already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_correlation_heatmap(self.user_agg, self.output_dir)
-
-    def plot_demographic_patterns(self, force: bool = False) -> None:
-        out_file = self.output_dir / "demographic_patterns.png"
-        if out_file.exists() and not force:
-            print("Demographic patterns already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_demographic_patterns(self.user_agg, self.output_dir)
-
-    def plot_anomalies(self, force: bool = False) -> None:
-        out_file = self.output_dir / "anomalies.png"
-        if out_file.exists() and not force:
-            print("Anomalies already plotted, skipping. Use `force=True` to re-run.")
-            return
-        anomalous_user_agg, _ = anomaly_analysis(self.user_agg)
-        plot_anomalies(anomalous_user_agg, self.output_dir)
-
-    def plot_us_map(self, force: bool = False) -> None:
-        out_file = self.output_dir / "us_map.png"
-        if out_file.exists() and not force:
-            print("US merchant map already plotted, skipping. Use `force=True` to re-run.")
-            return
-        plot_us_map(self.transactions, self.output_dir)
-
-    def run(self, force: bool = False) -> None:
-        self.print_summary_statistics()
-        self.print_top_items(n=10)
-        self.plot_amount_distribution(force=force)
-        self.plot_transactions_over_time(force=force)
-        self.plot_time_patterns(force=force)
-        self.plot_errors_and_darkweb(force=force)
-        self.plot_credit_score_by_gender(force=force)
-        self.plot_top_merchants(force=force)
-        self.plot_top_mcc(force=force)
-        self.plot_user_transaction_distribution(force=force)
-        self.plot_correlation_heatmap(force=force)
-        self.plot_demographic_patterns(force=force)
-        self.plot_anomalies(force=force)
-        self.plot_us_map(force=force)
-        print("Analysis complete. Visualizations saved to:", self.output_dir)
+    anomalous_user_agg, _ = anomaly_analysis(analysis.user_agg)
+    analysis.plot_graph(plot_anomalies, anomalous_user_agg)
+    analysis.plot_graph(plot_us_map, analysis.transactions)
+    print("Analysis complete. Visualizations saved to:", plots_out_dir)
 
 
 if __name__ == "__main__":
-    analysis = TransactionAnalysis(
-        dataset_dir=FRAUD_DATASET_DIR / "cleaned",
-        output_dir=PLOTS_DIR,
-    )
-
-    # Comment/uncomment to run individual analyses
-    analysis.print_summary_statistics()
-    analysis.print_top_items(n=10)
-    analysis.plot_amount_distribution(force=True)
-    analysis.plot_transactions_over_time(force=True)
-    analysis.plot_time_patterns(force=True)
-    analysis.plot_errors_and_darkweb(force=True)
-    analysis.plot_credit_score_by_gender(force=True)
-    analysis.plot_top_merchants(force=True)
-    analysis.plot_top_mcc(force=True)
-    analysis.plot_user_transaction_distribution(force=True)
-    analysis.plot_correlation_heatmap(force=True)
-    analysis.plot_demographic_patterns(force=True)
-    analysis.plot_anomalies(force=True)
-    analysis.plot_us_map(force=True)
+    run(dataset_in_dir=FRAUD_DATASET_DIR / "cleaned", plots_out_dir=PLOTS_DIR, force=True)
