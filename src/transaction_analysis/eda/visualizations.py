@@ -10,6 +10,41 @@ import seaborn as sns
 from transaction_analysis.eda.utils import save_figure
 
 
+def plot_anomalies(user_agg: pd.DataFrame, output_dir: Path) -> None:
+    # Anomaly score histogram
+    fig, ax = plt.subplots(figsize=(14, 5))
+    sns.histplot(user_agg["anomaly_score"], bins=60, color="steelblue", ax=ax)
+    ax.axvline(0, color="red", linestyle="--", label="Decision boundary")
+    ax.set_title("Isolation Forest Anomaly Score Distribution", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Score  (lower = more anomalous)")
+    ax.legend()
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    save_figure("anomaly_scores.png", output_dir)
+    plt.close()
+
+    # Violin: avg_amount by anomaly label
+    avg_col = "avg_amount" if "avg_amount" in user_agg.columns else "amount_mean"
+    fig, ax = plt.subplots(figsize=(14, 5))
+    sns.violinplot(
+        data=user_agg,
+        x="anomaly",
+        y=avg_col,
+        order=[1, -1],
+        ax=ax,
+        palette={1: "#69b3a2", -1: "#ff6b6b"},
+        hue="anomaly",
+        legend=False,
+    )
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["Normal", "Anomaly"])
+    ax.set_title("Avg Transaction Amount: Normal vs Anomalous Users", fontsize=12, fontweight="bold")
+    ax.grid(alpha=0.3, axis="y")
+    plt.tight_layout()
+    save_figure("anomaly_amount.png", output_dir)
+    plt.close()
+
+
 def plot_amount_distribution(
     transactions: pd.DataFrame,
     output_dir: Path,

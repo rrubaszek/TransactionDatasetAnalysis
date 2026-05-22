@@ -8,12 +8,10 @@ import seaborn as sns
 
 
 def load_cleaned_data(dataset_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-
     transactions_path = dataset_dir / "transactions.parquet"
 
     transactions = pd.read_parquet(transactions_path)
 
-    # Load users and cards if they exist
     users_path = dataset_dir / "users.parquet"
     cards_path = dataset_dir / "cards.parquet"
 
@@ -24,15 +22,14 @@ def load_cleaned_data(dataset_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd
 
 
 def configure_plotting() -> None:
-    """Configure matplotlib and seaborn for consistent visualization styling."""
     sns.set_theme(style="whitegrid", palette="husl")
     plt.rcParams["figure.figsize"] = (12, 6)
     plt.rcParams["font.size"] = 10
 
 
 def save_figure(filename: str, output_dir: Path = Path("plots")) -> None:
-
     output_dir.mkdir(exist_ok=True, parents=True)
     filepath = output_dir / filename
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
+    plt.show()
     print(f"Saved: {filepath}")
