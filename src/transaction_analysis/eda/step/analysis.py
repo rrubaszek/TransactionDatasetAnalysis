@@ -14,6 +14,7 @@ from transaction_analysis.eda.aggregations import (
 )
 from transaction_analysis.eda.anomalies import anomaly_analysis
 from transaction_analysis.eda.geoanalysis import plot_us_map
+from transaction_analysis.eda.pca import PCAResult, load_fraud_labels, run_user_pca
 from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
 from transaction_analysis.eda.visualizations import (
     plot_amount_distribution,
@@ -22,6 +23,10 @@ from transaction_analysis.eda.visualizations import (
     plot_credit_score_by_gender,
     plot_demographic_patterns,
     plot_errors_and_darkweb,
+    plot_pca_biplot,
+    plot_pca_clusters,
+    plot_pca_fraud_overlay,
+    plot_pca_scree,
     plot_time_patterns,
     plot_top_mcc,
     plot_top_merchants,
@@ -49,6 +54,7 @@ class TransactionAnalysis:
         self._merchant_agg = None
         self._mcc_agg = None
         self._risk_metrics = None
+        self._pca_result: PCAResult | None = None
 
     @property
     def user_agg(self) -> pd.DataFrame:
@@ -79,6 +85,18 @@ class TransactionAnalysis:
         if self._risk_metrics is None:
             self._risk_metrics = calculate_risk_metrics(self.user_agg, self.transactions)
         return self._risk_metrics
+
+    @property
+    def pca_result(self) -> PCAResult:
+        if self._pca_result is None:
+            fraud_labels = load_fraud_labels(self.dataset_dir)
+            self._pca_result = run_user_pca(
+                transactions=self.transactions,
+                users=self.users,
+                cards=self.cards,
+                fraud_labels=fraud_labels,
+            )
+        return self._pca_result
 
     def print_summary_statistics(self) -> None:
         print("\nTRANSACTION STATISTICS:")
@@ -158,4 +176,13 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
     anomalous_user_agg, _ = anomaly_analysis(analysis.user_agg)
     analysis.plot_graph(plot_anomalies, anomalous_user_agg)
     analysis.plot_graph(plot_us_map, analysis.transactions)
+
+    pca = analysis.pca_result
+    analysis.plot_graph(plot_pca_scree, pca.explained_variance)
+    analysis.plot_graph(plot_pca_biplot, pca.scores, pca.loadings, pca.explained_variance)
+    if pca.fraud_rate is not None:
+        analysis.plot_graph(plot_pca_fraud_overlay, pca.scores, pca.fraud_rate)
+    if pca.clusters is not None:
+        analysis.plot_graph(plot_pca_clusters, pca.scores, pca.clusters, pca.loadings)
+
     logger.info("Analysis complete. Visualizations saved to: %s", plots_out_dir)
