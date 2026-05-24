@@ -5,6 +5,7 @@ from typing import Any
 
 import pandas as pd
 
+from transaction_analysis.config.paths import FRAUD_DATASET_DIR
 from transaction_analysis.eda.aggregations import (
     aggregate_by_mcc,
     aggregate_by_merchant,
@@ -14,7 +15,7 @@ from transaction_analysis.eda.aggregations import (
 )
 from transaction_analysis.eda.anomalies import anomaly_analysis
 from transaction_analysis.eda.geoanalysis import plot_us_map
-from transaction_analysis.eda.pca import PCAResult, load_fraud_labels, run_user_pca
+from transaction_analysis.eda.pca import PCAResult, run_user_pca
 from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
 from transaction_analysis.eda.visualizations import (
     plot_amount_distribution,
@@ -89,7 +90,7 @@ class TransactionAnalysis:
     @property
     def pca_result(self) -> PCAResult:
         if self._pca_result is None:
-            fraud_labels = load_fraud_labels(self.dataset_dir)
+            fraud_labels = pd.read_parquet(FRAUD_DATASET_DIR / "cleaned" / "fraud_labels.parquet")
             self._pca_result = run_user_pca(
                 transactions=self.transactions,
                 users=self.users,
