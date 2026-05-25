@@ -4,11 +4,11 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
+from transaction_analysis.config.paths import FRAUD_DATASET_DIR
 from transaction_analysis.eda.utils import (
     _FALLBACK_STATE_CENTERS,
     download_and_extract_zip,
 )
-from transaction_analysis.paths import FRAUD_DATASET_DIR
 
 _US_CITIES_URL = "https://raw.githubusercontent.com/plotly/datasets/master/us-cities-top-1k.csv"
 
