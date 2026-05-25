@@ -14,7 +14,6 @@ from transaction_analysis.eda.aggregations import (
     calculate_risk_metrics,
 )
 from transaction_analysis.eda.anomalies import anomaly_analysis
-from transaction_analysis.eda.geoanalysis import plot_us_map
 from transaction_analysis.eda.pca import PCAResult, run_user_pca
 from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
 from transaction_analysis.eda.visualizations import (
@@ -32,6 +31,7 @@ from transaction_analysis.eda.visualizations import (
     plot_top_mcc,
     plot_top_merchants,
     plot_transactions_over_time,
+    plot_us_transaction_map,
     plot_user_transaction_distribution,
 )
 
@@ -176,7 +176,7 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
 
     anomalous_user_agg, _ = anomaly_analysis(analysis.user_agg)
     analysis.plot_graph(plot_anomalies, anomalous_user_agg)
-    analysis.plot_graph(plot_us_map, analysis.transactions)
+    analysis.plot_graph(plot_us_transaction_map, analysis.transactions)
 
     pca = analysis.pca_result
     analysis.plot_graph(plot_pca_scree, pca.explained_variance)
