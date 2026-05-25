@@ -29,7 +29,7 @@ from transaction_analysis.eda.visualizations import (
     plot_pca_scree,
     plot_time_patterns,
     plot_top_mcc,
-    plot_top_merchants,
+    plot_top_states_by_amount,
     plot_transactions_over_time,
     plot_us_transaction_map,
     plot_user_transaction_distribution,
@@ -168,7 +168,7 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
     analysis.plot_graph(plot_time_patterns, analysis.transactions)
     analysis.plot_graph(plot_errors_and_darkweb, analysis.transactions, analysis.cards)
     analysis.plot_graph(plot_credit_score_by_gender, analysis.users)
-    analysis.plot_graph(plot_top_merchants, analysis.merchant_agg, top_n=15)
+    analysis.plot_graph(plot_top_states_by_amount, analysis.transactions, top_n=15)
     analysis.plot_graph(plot_top_mcc, analysis.mcc_agg, top_n=15)
     analysis.plot_graph(plot_user_transaction_distribution, analysis.user_agg)
     analysis.plot_graph(plot_correlation_heatmap, analysis.user_agg)

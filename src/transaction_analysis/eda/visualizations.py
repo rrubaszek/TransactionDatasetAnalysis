@@ -17,9 +17,9 @@ def plot_anomalies(user_agg: pd.DataFrame, output_dir: Path) -> None:
     # Anomaly score histogram
     fig, ax = plt.subplots(figsize=(14, 5))
     sns.histplot(user_agg["anomaly_score"], bins=60, color="steelblue", ax=ax)
-    ax.axvline(0, color="red", linestyle="--", label="Decision boundary")
-    ax.set_title("Isolation Forest Anomaly Score Distribution", fontsize=12, fontweight="bold")
-    ax.set_xlabel("Score  (lower = more anomalous)")
+    ax.axvline(0, color="red", linestyle="--", label="Granica decyzyjna")
+    ax.set_title("Rozkład wyników detekcji anomalii Isolation Forest", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Wynik  (niższy = bardziej anomalny)")
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
@@ -40,8 +40,8 @@ def plot_anomalies(user_agg: pd.DataFrame, output_dir: Path) -> None:
         legend=False,
     )
     ax.set_xticks([0, 1])
-    ax.set_xticklabels(["Normal", "Anomaly"])
-    ax.set_title("Avg Transaction Amount: Normal vs Anomalous Users", fontsize=12, fontweight="bold")
+    ax.set_xticklabels(["Normalny", "Anomalny"])
+    ax.set_title("Średnia kwota transakcji: Normalny vs Anomalny", fontsize=12, fontweight="bold")
     ax.grid(alpha=0.3, axis="y")
     plt.tight_layout()
     save_figure("anomaly_amount.png", output_dir)
@@ -60,15 +60,15 @@ def plot_amount_distribution(
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     axes[0].hist(amounts, bins=bins, color="steelblue", edgecolor="black", alpha=0.7)
-    axes[0].set_title("Transaction Amount Distribution", fontsize=12, fontweight="bold")
-    axes[0].set_xlabel("Amount ($)")
-    axes[0].set_ylabel("Frequency")
+    axes[0].set_title("Ilość transakcji w zależności od kwoty", fontsize=12, fontweight="bold")
+    axes[0].set_xlabel("Kwota transakcji (USD)")
+    axes[0].set_ylabel("Ilość transakcji")
     axes[0].grid(alpha=0.3)
 
-    axes[1].hist(np.log1p(amounts), bins=bins, color="teal", edgecolor="black", alpha=0.7)
-    axes[1].set_title("Log-Transformed Amount Distribution", fontsize=12, fontweight="bold")
-    axes[1].set_xlabel("log(1 + Amount)")
-    axes[1].set_ylabel("Frequency")
+    axes[1].hist(np.log10(amounts.add(1)), bins=bins, color="teal", edgecolor="black", alpha=0.7)
+    axes[1].set_title("Rozkład logarytmiczny kwoty transakcji", fontsize=12, fontweight="bold")
+    axes[1].set_xlabel("log10(1 + Kwota transakcji)")
+    axes[1].set_ylabel("Ilość transakcji")
     axes[1].grid(alpha=0.3)
 
     plt.tight_layout()
@@ -93,9 +93,9 @@ def plot_transactions_over_time(
 
     fig, ax = plt.subplots(figsize=(14, 5))
     ax.plot(monthly["period"], monthly["txn_count"], marker="o", linewidth=1.5, color="steelblue")
-    ax.set_title("Monthly Transaction Volume", fontsize=12, fontweight="bold")
-    ax.set_xlabel("Month")
-    ax.set_ylabel("Transactions")
+    ax.set_title("Ilość transakcji w zależności od miesiąca", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Miesiąc")
+    ax.set_ylabel("Ilość transakcji")
     ax.grid(alpha=0.3)
     plt.xticks(rotation=45)
     plt.tight_layout()
@@ -120,15 +120,15 @@ def plot_time_patterns(
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     hourly.plot(kind="bar", ax=axes[0], color="steelblue")
-    axes[0].set_title("Transactions by Hour of Day", fontsize=12, fontweight="bold")
-    axes[0].set_xlabel("Hour")
-    axes[0].set_ylabel("Count")
+    axes[0].set_title("Ilość transakcji w zależności od godziny", fontsize=12, fontweight="bold")
+    axes[0].set_xlabel("Godzina")
+    axes[0].set_ylabel("Ilość transakcji")
     axes[0].grid(alpha=0.3, axis="y")
 
     daily.rename(index=dict(enumerate(dow_labels))).plot(kind="bar", ax=axes[1], color="coral")
-    axes[1].set_title("Transactions by Day of Week", fontsize=12, fontweight="bold")
-    axes[1].set_xlabel("Day of Week")
-    axes[1].set_ylabel("Count")
+    axes[1].set_title("Ilość transakcji w zależności od dnia tygodnia", fontsize=12, fontweight="bold")
+    axes[1].set_xlabel("Dzień tygodnia")
+    axes[1].set_ylabel("Ilość transakcji")
     axes[1].grid(alpha=0.3, axis="y")
 
     plt.tight_layout()
@@ -151,8 +151,8 @@ def plot_errors_and_darkweb(
     axes[0].barh(range(len(error_counts)), error_counts.values, color="salmon", edgecolor="black", alpha=0.7)
     axes[0].set_yticks(range(len(error_counts)))
     axes[0].set_yticklabels(error_counts.index, fontsize=9)
-    axes[0].set_xlabel("Count")
-    axes[0].set_title("Top Transaction Error Types", fontsize=12, fontweight="bold")
+    axes[0].set_xlabel("Ilość transakcji")
+    axes[0].set_title("Najczęściej występujące błędy transakcji", fontsize=12, fontweight="bold")
     axes[0].invert_yaxis()
     axes[0].grid(alpha=0.3, axis="x")
 
@@ -163,7 +163,7 @@ def plot_errors_and_darkweb(
         colors=["#69b3a2", "#ff6b6b"],
         startangle=90,
     )
-    axes[1].set_title("Card on Dark Web", fontsize=12, fontweight="bold")
+    axes[1].set_title("Karty na Dark Web", fontsize=12, fontweight="bold")
     axes[1].set_ylabel("")
 
     plt.tight_layout()
@@ -181,9 +181,9 @@ def plot_credit_score_by_gender(
     fig, ax = plt.subplots(figsize=(14, 5))
     for gender, grp in user_scores.groupby("gender"):
         sns.kdeplot(grp["credit_score"], ax=ax, label=gender, fill=True, alpha=0.4)
-    ax.set_title("Credit Score Distribution by Gender", fontsize=12, fontweight="bold")
-    ax.set_xlabel("Credit Score")
-    ax.set_ylabel("Density")
+    ax.set_title("Rozkłady zdolności kredytowej dla mężczyzn i kobiet", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Zdolność kredytowa")
+    ax.set_ylabel("Częstość występowania")
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
@@ -191,25 +191,36 @@ def plot_credit_score_by_gender(
     plt.close()
 
 
-def plot_top_merchants(
-    merchant_agg: pd.DataFrame,
+def plot_top_states_by_amount(
+    transactions: pd.DataFrame,
     output_dir: Path,
     top_n: int = 15,
 ) -> None:
-    """Top merchants by transaction volume."""
-    top_merchants = merchant_agg.head(top_n)
+    """Top US states by total transaction amount, with online transactions as their own bucket."""
+    df = transactions[["merchant_state", "transaction_type", "amount_usd"]].copy()
+    df["amount_usd"] = pd.to_numeric(df["amount_usd"], errors="coerce")
+    df = df.dropna(subset=["amount_usd"])
+
+    bucket = df["merchant_state"].astype("object")
+    online_mask = df["transaction_type"].astype(str).str.contains("Online", case=False, na=False)
+    bucket = bucket.mask(online_mask, "Online")
+    df = df.assign(bucket=bucket).dropna(subset=["bucket"])
+
+    top_states = df.groupby("bucket", observed=True)["amount_usd"].sum().sort_values(ascending=False).head(top_n)
+
+    colors = ["coral" if label == "Online" else "steelblue" for label in top_states.index]
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    ax.barh(range(len(top_merchants)), top_merchants["txn_count"], color="steelblue")
-    ax.set_yticks(range(len(top_merchants)))
-    ax.set_yticklabels([f"Merchant {m}" for m in top_merchants["merchant_id"]])
-    ax.set_xlabel("Transaction Count")
-    ax.set_title(f"Top {top_n} Merchants by Transaction Volume", fontsize=12, fontweight="bold")
+    ax.barh(range(len(top_states)), top_states.values / 1e6, color=colors)
+    ax.set_yticks(range(len(top_states)))
+    ax.set_yticklabels(top_states.index)
+    ax.set_xlabel("Suma kwot transakcji (mln USD)")
+    ax.set_title(f"Top {top_n} stanów USA w zależności od sumy kwot transakcji", fontsize=12, fontweight="bold")
     ax.invert_yaxis()
     ax.grid(alpha=0.3, axis="x")
 
     plt.tight_layout()
-    save_figure(f"top_{top_n}_merchants.png", output_dir)
+    save_figure(f"top_{top_n}_states_by_amount.png", output_dir)
     plt.close()
 
 
@@ -225,8 +236,8 @@ def plot_top_mcc(
     ax.bar(range(len(top_mcc)), top_mcc["txn_count"], color="teal", edgecolor="black", alpha=0.7)
     ax.set_xticks(range(len(top_mcc)))
     ax.set_xticklabels(top_mcc["mcc"], rotation=45, ha="right")
-    ax.set_ylabel("Transaction Count")
-    ax.set_title(f"Top {top_n} MCC Codes by Transaction Volume", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Ilość transakcji")
+    ax.set_title("Kody MCC o największych przychodach", fontsize=12, fontweight="bold")
     ax.grid(alpha=0.3, axis="y")
 
     plt.tight_layout()
@@ -242,30 +253,30 @@ def plot_user_transaction_distribution(
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
     axes[0, 0].hist(user_agg["txn_count"], bins=50, color="steelblue", edgecolor="black", alpha=0.7)
-    axes[0, 0].set_title("Distribution of Transaction Count per User", fontsize=11, fontweight="bold")
-    axes[0, 0].set_xlabel("Transaction Count")
-    axes[0, 0].set_ylabel("Number of Users")
+    axes[0, 0].set_title("Rozkład ilości transakcji spośród klientów", fontsize=11, fontweight="bold")
+    axes[0, 0].set_xlabel("Ilość transakcji")
+    axes[0, 0].set_ylabel("Ilość klientów")
     axes[0, 0].grid(alpha=0.3)
 
     if "amount_sum" in user_agg.columns:
         axes[0, 1].hist(user_agg["amount_sum"], bins=50, color="coral", edgecolor="black", alpha=0.7)
-        axes[0, 1].set_title("Distribution of Total Amount per User", fontsize=11, fontweight="bold")
-        axes[0, 1].set_xlabel("Total Amount ($)")
-        axes[0, 1].set_ylabel("Number of Users")
+        axes[0, 1].set_title("Rozkład sumy kwot transakcji spośród klientów", fontsize=11, fontweight="bold")
+        axes[0, 1].set_xlabel("Suma kwot transakcji ($)")
+        axes[0, 1].set_ylabel("Ilość klientów")
         axes[0, 1].grid(alpha=0.3)
 
     if "amount_mean" in user_agg.columns:
         axes[1, 0].hist(user_agg["amount_mean"], bins=50, color="teal", edgecolor="black", alpha=0.7)
-        axes[1, 0].set_title("Distribution of Average Amount per User", fontsize=11, fontweight="bold")
-        axes[1, 0].set_xlabel("Average Amount ($)")
-        axes[1, 0].set_ylabel("Number of Users")
+        axes[1, 0].set_title("Rozkład średniej kwoty transakcji spośród klientów", fontsize=11, fontweight="bold")
+        axes[1, 0].set_xlabel("Średnia kwota transakcji ($)")
+        axes[1, 0].set_ylabel("Ilość klientów")
         axes[1, 0].grid(alpha=0.3)
 
     if "txn_frequency" in user_agg.columns:
         axes[1, 1].hist(user_agg["txn_frequency"], bins=50, color="green", edgecolor="black", alpha=0.7)
-        axes[1, 1].set_title("Distribution of Transaction Frequency per User", fontsize=11, fontweight="bold")
-        axes[1, 1].set_xlabel("Transactions per Day")
-        axes[1, 1].set_ylabel("Number of Users")
+        axes[1, 1].set_title("Rozkład częstotliwości transakcji spośród klientów", fontsize=11, fontweight="bold")
+        axes[1, 1].set_xlabel("Ilość transakcji na dzień")
+        axes[1, 1].set_ylabel("Ilość klientów")
         axes[1, 1].grid(alpha=0.3)
 
     plt.tight_layout()
@@ -291,9 +302,9 @@ def plot_correlation_heatmap(
         center=0,
         linewidths=0.5,
         ax=ax,
-        cbar_kws={"label": "Correlation"},
+        cbar_kws={"label": "Korelacja"},
     )
-    ax.set_title("Correlation Matrix — User Aggregated Features", fontsize=12, fontweight="bold")
+    ax.set_title("Macierz korelacji - agregacja cech klientów", fontsize=12, fontweight="bold")
     plt.tight_layout()
     save_figure("correlation_heatmap.png", output_dir)
     plt.close()
@@ -304,44 +315,42 @@ def plot_demographic_patterns(
     output_dir: Path,
 ) -> None:
     """Transaction patterns broken down by gender, credit score, card count, and age."""
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig, axes = plt.subplots(1, 3, figsize=(21, 6))
 
     if "gender" in user_agg.columns and "txn_count" in user_agg.columns:
         gender_stats = user_agg.groupby("gender")["txn_count"].mean()
-        axes[0, 0].bar(gender_stats.index, gender_stats.values, color="steelblue", alpha=0.7, edgecolor="black")
-        axes[0, 0].set_title("Average Transaction Count by Gender", fontsize=11, fontweight="bold")
-        axes[0, 0].set_ylabel("Average Count")
-        axes[0, 0].grid(alpha=0.3, axis="y")
+        axes[0].bar(gender_stats.index, gender_stats.values, color="steelblue", alpha=0.7, edgecolor="black")
+        axes[0].set_title("Średnia ilość transakcji w zależności od płci", fontsize=11, fontweight="bold")
+        axes[0].set_ylabel("Średnia ilość transakcji")
+        axes[0].grid(alpha=0.3, axis="y")
 
     if "credit_score" in user_agg.columns and "amount_mean" in user_agg.columns:
         user_agg_copy = user_agg.copy()
         user_agg_copy["score_bin"] = pd.cut(user_agg_copy["credit_score"], bins=5)
         score_stats = user_agg_copy.groupby("score_bin", observed=True)["amount_mean"].mean()
-        axes[0, 1].bar(range(len(score_stats)), score_stats.values, color="coral", alpha=0.7, edgecolor="black")
-        axes[0, 1].set_xticks(range(len(score_stats)))
-        axes[0, 1].set_xticklabels([str(b) for b in score_stats.index], rotation=45, ha="right", fontsize=8)
-        axes[0, 1].set_title("Average Amount by Credit Score Bins", fontsize=11, fontweight="bold")
-        axes[0, 1].set_ylabel("Average Amount ($)")
-        axes[0, 1].grid(alpha=0.3, axis="y")
+        axes[1].bar(range(len(score_stats)), score_stats.values, color="coral", alpha=0.7, edgecolor="black")
+        axes[1].set_xticks(range(len(score_stats)))
+        axes[1].set_xticklabels([str(b) for b in score_stats.index], rotation=45, ha="right", fontsize=8)
+        axes[1].set_title(
+            "Średnia kwota transakcji w zależności od zdolności kredytowej",
+            fontsize=11,
+            fontweight="bold",
+        )
+        axes[1].set_ylabel("Średnia kwota transakcji ($)")
+        axes[1].grid(alpha=0.3, axis="y")
 
     if "num_credit_cards" in user_agg.columns and "amount_sum" in user_agg.columns:
         card_stats = user_agg.groupby("num_credit_cards")["amount_sum"].mean().head(10)
-        axes[1, 0].bar(range(len(card_stats)), card_stats.values, color="teal", alpha=0.7, edgecolor="black")
-        axes[1, 0].set_xticks(range(len(card_stats)))
-        axes[1, 0].set_xticklabels(card_stats.index, rotation=45)
-        axes[1, 0].set_title("Total Spending by Number of Credit Cards", fontsize=11, fontweight="bold")
-        axes[1, 0].set_ylabel("Total Amount ($)")
-        axes[1, 0].grid(alpha=0.3, axis="y")
-
-    if "current_age" in user_agg.columns and "amount_mean" in user_agg.columns:
-        age_bins = pd.cut(user_agg["current_age"], bins=6)
-        age_stats = user_agg.groupby(age_bins, observed=True)["amount_mean"].mean()
-        axes[1, 1].bar(range(len(age_stats)), age_stats.values, color="green", alpha=0.7, edgecolor="black")
-        axes[1, 1].set_xticks(range(len(age_stats)))
-        axes[1, 1].set_xticklabels([str(b) for b in age_stats.index], rotation=45, ha="right", fontsize=8)
-        axes[1, 1].set_title("Average Amount by Age Bins", fontsize=11, fontweight="bold")
-        axes[1, 1].set_ylabel("Average Amount ($)")
-        axes[1, 1].grid(alpha=0.3, axis="y")
+        axes[2].bar(range(len(card_stats)), card_stats.values, color="teal", alpha=0.7, edgecolor="black")
+        axes[2].set_xticks(range(len(card_stats)))
+        axes[2].set_xticklabels(card_stats.index, rotation=45)
+        axes[2].set_title(
+            "Suma kwot transakcji w zależności od ilości kart kredytowych",
+            fontsize=11,
+            fontweight="bold",
+        )
+        axes[2].set_ylabel("Suma kwot transakcji ($)")
+        axes[2].grid(alpha=0.3, axis="y")
 
     plt.tight_layout()
     save_figure("demographic_patterns.png", output_dir)
@@ -359,9 +368,9 @@ def plot_pca_scree(
 
     fig, ax = plt.subplots(figsize=(12, 5))
     bars = ax.bar(pcs, explained_variance, color="steelblue", edgecolor="black", alpha=0.7, label="Per-component")
-    ax.set_xlabel("Principal component")
-    ax.set_ylabel("Explained variance ratio")
-    ax.set_title("PCA Scree + Cumulative Variance", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Główna składowa")
+    ax.set_ylabel("Wariancja wyjaśniona")
+    ax.set_title("PCA Scree oraz Wariancja skumulowana", fontsize=12, fontweight="bold")
     ax.set_xticks(pcs)
     ax.grid(alpha=0.3, axis="y")
 
@@ -369,8 +378,8 @@ def plot_pca_scree(
         ax.text(bar.get_x() + bar.get_width() / 2, v + 0.005, f"{v:.2f}", ha="center", fontsize=9)
 
     ax2 = ax.twinx()
-    ax2.plot(pcs, cum, marker="o", color="coral", linewidth=2, label="Cumulative")
-    ax2.set_ylabel("Cumulative variance")
+    ax2.plot(pcs, cum, marker="o", color="coral", linewidth=2, label="Kumulacja")
+    ax2.set_ylabel("Wariancja skumulowana")
     ax2.set_ylim(0, 1.02)
     ax2.axhline(0.8, color="gray", linestyle="--", alpha=0.6)
     ax2.text(n, 0.81, "80%", color="gray", fontsize=9, ha="right")
@@ -409,7 +418,7 @@ def plot_pca_biplot(
     ax.axvline(0, color="gray", linewidth=0.5)
     ax.set_xlabel(f"{pc_x} ({explained_variance[0]:.1%})")
     ax.set_ylabel(f"{pc_y} ({explained_variance[1]:.1%})")
-    ax.set_title("User PCA Biplot (top loadings)", fontsize=12, fontweight="bold")
+    ax.set_title("PCA klienta - najważniejsze cechy", fontsize=12, fontweight="bold")
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
@@ -428,7 +437,7 @@ def plot_pca_fraud_overlay(
     fig, ax = plt.subplots(figsize=(12, 8))
     # Plot zero-fraud users first as a faint background, then non-zero on top.
     zero = fr == 0
-    ax.scatter(scores.loc[zero, "PC1"], scores.loc[zero, "PC2"], s=10, alpha=0.2, color="lightgray", label="No fraud")
+    ax.scatter(scores.loc[zero, "PC1"], scores.loc[zero, "PC2"], s=10, alpha=0.2, color="lightgray")
     sc = ax.scatter(
         scores.loc[~zero, "PC1"],
         scores.loc[~zero, "PC2"],
@@ -440,14 +449,13 @@ def plot_pca_fraud_overlay(
         alpha=0.9,
     )
     cbar = plt.colorbar(sc, ax=ax)
-    cbar.set_label("Fraud rate (% of user's transactions)")
+    cbar.set_label("Procent transakcji oszukańczych")
 
     ax.axhline(0, color="gray", linewidth=0.5)
     ax.axvline(0, color="gray", linewidth=0.5)
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
-    ax.set_title("User PCA — Fraud Rate Overlay", fontsize=12, fontweight="bold")
-    ax.legend(loc="upper right")
+    ax.set_title("PCA Klienta - Mapa oszukańczych transakcji", fontsize=12, fontweight="bold")
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
@@ -474,7 +482,7 @@ def plot_pca_clusters(
             s=20,
             alpha=0.6,
             color=palette[i % len(palette)],
-            label=f"Cluster {c} (n={int(mask.sum())})",
+            label=f"Klaster {c} (n={int(mask.sum())})",
             edgecolor="none",
         )
 
@@ -488,7 +496,7 @@ def plot_pca_clusters(
     ax.axvline(0, color="gray", linewidth=0.5)
     ax.set_xlabel(f"PC1  ({pc1_sign}{top_pc1})")
     ax.set_ylabel(f"PC2  ({pc2_sign}{top_pc2})")
-    ax.set_title("User PCA — KMeans Clusters on First Two PCs", fontsize=12, fontweight="bold")
+    ax.set_title("PCA klienta - KMeans dla pierwszych dwóch głównych składowych", fontsize=12, fontweight="bold")
     ax.legend(loc="best", fontsize=9)
     ax.grid(alpha=0.3)
 
@@ -552,10 +560,10 @@ def plot_us_transaction_map(
     fig.colorbar(
         sc0,
         ax=axes[0],
-        label="Transaction Count",
+        label="Ilość transakcji",
     )
 
-    axes[0].set_title("Transaction Volume by Merchant Location")
+    axes[0].set_title("Ilość transakcji w zależności od lokalizacji sprzedawcy")
 
     sizes = scale_bubbles(
         geo_df["avg_amount"],
@@ -576,10 +584,10 @@ def plot_us_transaction_map(
     fig.colorbar(
         sc1,
         ax=axes[1],
-        label="Average Transaction Amount ($)",
+        label="Średnia kwota transakcji ($)",
     )
 
-    axes[1].set_title("Average Transaction Amount by Merchant Location")
+    axes[1].set_title("Średnia kwota transakcji w zależności od lokalizacji sprzedawcy")
 
     plt.tight_layout()
     save_figure("us_merchant_map.png", output_dir)
