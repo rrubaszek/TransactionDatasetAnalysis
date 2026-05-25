@@ -1,3 +1,4 @@
+import logging
 import zipfile
 from pathlib import Path
 
@@ -5,6 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 import seaborn as sns
+
+logger = logging.getLogger(__name__)
 
 _FALLBACK_STATE_CENTERS: dict[str, tuple[float, float]] = {
     "AL": (32.8, -86.8),
@@ -86,7 +89,8 @@ def save_figure(filename: str, output_dir: Path = Path("plots")) -> None:
     filepath = output_dir / filename
     plt.savefig(filepath, dpi=150, bbox_inches="tight")
     plt.show()
-    print(f"Saved: {filepath}")
+    plt.show()
+    logger.info("Saved: %s", filepath)
 
 
 def download_and_extract_zip(

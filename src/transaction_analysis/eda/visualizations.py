@@ -348,6 +348,155 @@ def plot_demographic_patterns(
     plt.close()
 
 
+def plot_pca_scree(
+    explained_variance: np.ndarray,
+    output_dir: Path,
+) -> None:
+    """Scree (bars) + cumulative variance (line) for a fitted PCA."""
+    n = len(explained_variance)
+    pcs = np.arange(1, n + 1)
+    cum = np.cumsum(explained_variance)
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    bars = ax.bar(pcs, explained_variance, color="steelblue", edgecolor="black", alpha=0.7, label="Per-component")
+    ax.set_xlabel("Principal component")
+    ax.set_ylabel("Explained variance ratio")
+    ax.set_title("PCA Scree + Cumulative Variance", fontsize=12, fontweight="bold")
+    ax.set_xticks(pcs)
+    ax.grid(alpha=0.3, axis="y")
+
+    for bar, v in zip(bars, explained_variance, strict=False):
+        ax.text(bar.get_x() + bar.get_width() / 2, v + 0.005, f"{v:.2f}", ha="center", fontsize=9)
+
+    ax2 = ax.twinx()
+    ax2.plot(pcs, cum, marker="o", color="coral", linewidth=2, label="Cumulative")
+    ax2.set_ylabel("Cumulative variance")
+    ax2.set_ylim(0, 1.02)
+    ax2.axhline(0.8, color="gray", linestyle="--", alpha=0.6)
+    ax2.text(n, 0.81, "80%", color="gray", fontsize=9, ha="right")
+
+    plt.tight_layout()
+    save_figure("pca_screen.png", output_dir)
+    plt.close()
+
+
+def plot_pca_biplot(
+    scores: pd.DataFrame,
+    loadings: pd.DataFrame,
+    explained_variance: np.ndarray,
+    output_dir: Path,
+    top_features: int = 8,
+) -> None:
+    """PC1-PC2 score scatter with top-loading feature arrows."""
+    pc_x, pc_y = "PC1", "PC2"
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax.scatter(scores[pc_x], scores[pc_y], s=14, alpha=0.35, color="steelblue", edgecolor="none")
+
+    # Pick top features by magnitude in the PC1-PC2 plane.
+    mag = np.sqrt(loadings[pc_x] ** 2 + loadings[pc_y] ** 2)
+    top = mag.nlargest(top_features).index
+
+    score_extent = max(scores[pc_x].abs().max(), scores[pc_y].abs().max())
+    arrow_scale = 0.85 * score_extent / mag.loc[top].max()
+
+    for feat in top:
+        dx, dy = loadings.loc[feat, pc_x] * arrow_scale, loadings.loc[feat, pc_y] * arrow_scale
+        ax.arrow(0, 0, dx, dy, color="crimson", alpha=0.85, width=score_extent * 0.003, head_width=score_extent * 0.02)
+        ax.text(dx * 1.08, dy * 1.08, feat, color="darkred", fontsize=9, ha="center", va="center", fontweight="bold")
+
+    ax.axhline(0, color="gray", linewidth=0.5)
+    ax.axvline(0, color="gray", linewidth=0.5)
+    ax.set_xlabel(f"{pc_x} ({explained_variance[0]:.1%})")
+    ax.set_ylabel(f"{pc_y} ({explained_variance[1]:.1%})")
+    ax.set_title("User PCA Biplot (top loadings)", fontsize=12, fontweight="bold")
+    ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    save_figure("pca_biplot.png", output_dir)
+    plt.close()
+
+
+def plot_pca_fraud_overlay(
+    scores: pd.DataFrame,
+    fraud_rate: pd.Series,
+    output_dir: Path,
+) -> None:
+    """PC1-PC2 scatter colored by per-user fraud rate."""
+    fr = fraud_rate.reindex(scores.index).fillna(0.0)
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    # Plot zero-fraud users first as a faint background, then non-zero on top.
+    zero = fr == 0
+    ax.scatter(scores.loc[zero, "PC1"], scores.loc[zero, "PC2"], s=10, alpha=0.2, color="lightgray", label="No fraud")
+    sc = ax.scatter(
+        scores.loc[~zero, "PC1"],
+        scores.loc[~zero, "PC2"],
+        c=fr.loc[~zero] * 100,
+        cmap="YlOrRd",
+        s=28,
+        edgecolor="black",
+        linewidth=0.3,
+        alpha=0.9,
+    )
+    cbar = plt.colorbar(sc, ax=ax)
+    cbar.set_label("Fraud rate (% of user's transactions)")
+
+    ax.axhline(0, color="gray", linewidth=0.5)
+    ax.axvline(0, color="gray", linewidth=0.5)
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title("User PCA — Fraud Rate Overlay", fontsize=12, fontweight="bold")
+    ax.legend(loc="upper right")
+    ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    save_figure("pca_fraud_overlay.png", output_dir)
+    plt.close()
+
+
+def plot_pca_clusters(
+    scores: pd.DataFrame,
+    clusters: pd.Series,
+    loadings: pd.DataFrame,
+    output_dir: Path,
+) -> None:
+    """PC1-PC2 scatter colored by KMeans cluster, with top loadings as labels."""
+    clusters = clusters.reindex(scores.index)
+    palette = sns.color_palette("tab10", n_colors=clusters.nunique())
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    for i, c in enumerate(sorted(clusters.unique())):
+        mask = clusters == c
+        ax.scatter(
+            scores.loc[mask, "PC1"],
+            scores.loc[mask, "PC2"],
+            s=20,
+            alpha=0.6,
+            color=palette[i % len(palette)],
+            label=f"Cluster {c} (n={int(mask.sum())})",
+            edgecolor="none",
+        )
+
+    # Label each cluster with its top-magnitude loading feature (so the axes "read").
+    top_pc1 = loadings["PC1"].abs().idxmax()
+    top_pc2 = loadings["PC2"].abs().idxmax()
+    pc1_sign = "+" if loadings.loc[top_pc1, "PC1"] > 0 else "-"
+    pc2_sign = "+" if loadings.loc[top_pc2, "PC2"] > 0 else "-"
+
+    ax.axhline(0, color="gray", linewidth=0.5)
+    ax.axvline(0, color="gray", linewidth=0.5)
+    ax.set_xlabel(f"PC1  ({pc1_sign}{top_pc1})")
+    ax.set_ylabel(f"PC2  ({pc2_sign}{top_pc2})")
+    ax.set_title("User PCA — KMeans Clusters on First Two PCs", fontsize=12, fontweight="bold")
+    ax.legend(loc="best", fontsize=9)
+    ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    save_figure("pca_clusters.png", output_dir)
+    plt.close()
+
+
 def plot_us_transaction_map(
     transactions: pd.DataFrame,
     output_dir: Path,
