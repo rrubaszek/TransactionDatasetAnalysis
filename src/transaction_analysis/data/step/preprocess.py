@@ -1,10 +1,11 @@
+import logging
 import os
 from pathlib import Path
 from typing import Literal
 
 import pandas as pd
 
-from transaction_analysis.paths import FRAUD_DATASET_DIR
+logger = logging.getLogger(__name__)
 
 
 def currency_to_float32(df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -49,7 +50,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def process_transactions(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Transactions already preprocessed, skipping. Use `force=True` to re-run.")
+            logger.info("Transactions already preprocessed, skipping. Use `force=True` to re-run.")
             return
 
         (
@@ -71,7 +72,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def process_users(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Users already preprocessed, skipping. Use `force=True` to re-run.")
+            logger.info("Users already preprocessed, skipping. Use `force=True` to re-run.")
             return
 
         (
@@ -92,7 +93,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def process_cards(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Cards already preprocessed, skipping. Use `force=True` to re-run.")
+            logger.info("Cards already preprocessed, skipping. Use `force=True` to re-run.")
             return
 
         (
@@ -114,7 +115,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def process_mcc_codes(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("MCC codes already preprocessed, skipping. Use `force=True` to re-run.")
+            logger.info("MCC codes already preprocessed, skipping. Use `force=True` to re-run.")
             return
 
         (
@@ -128,7 +129,7 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
 
     def process_fraud_labels(in_file: Path, out_file: Path) -> None:
         if out_file.exists() and not force:
-            print("Fraud labels already preprocessed, skipping. Use `force=True` to re-run.")
+            logger.info("Fraud labels already preprocessed, skipping. Use `force=True` to re-run.")
             return
 
         # fmt: off
@@ -165,11 +166,3 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
         dataset_out_dir / "fraud_labels.parquet",
     )
     # fmt: on
-
-
-if __name__ == "__main__":
-    run(
-        dataset_in_dir=FRAUD_DATASET_DIR / "raw",
-        dataset_out_dir=FRAUD_DATASET_DIR / "preprocessed",
-        force=True,
-    )

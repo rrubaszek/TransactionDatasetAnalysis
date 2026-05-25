@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
+
+logger = logging.getLogger(__name__)
 
 
 def anomaly_analysis(
@@ -20,6 +24,6 @@ def anomaly_analysis(
     user_agg["anomaly_score"] = iso.decision_function(X_scaled)
 
     n_anomalies = (user_agg["anomaly"] == -1).sum()
-    print(f"Flagged {n_anomalies} anomalous users ({n_anomalies / len(user_agg) * 100:.1f}%)")
+    logger.info("Flagged %d anomalous users (%.1f%%)", n_anomalies, n_anomalies / len(user_agg) * 100)
 
     return user_agg, n_anomalies
