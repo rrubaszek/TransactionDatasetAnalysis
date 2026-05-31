@@ -6,6 +6,11 @@ from typing import Any
 import pandas as pd
 
 from transaction_analysis.config.paths import FRAUD_DATASET_DIR
+from transaction_analysis.data.loader import (
+    load_cards,
+    load_legit_transactions,
+    load_users,
+)
 from transaction_analysis.eda.aggregations import (
     aggregate_by_mcc,
     aggregate_by_merchant,
@@ -15,7 +20,7 @@ from transaction_analysis.eda.aggregations import (
 )
 from transaction_analysis.eda.anomalies import anomaly_analysis
 from transaction_analysis.eda.pca import PCAResult, run_user_pca
-from transaction_analysis.eda.utils import configure_plotting, load_cleaned_data
+from transaction_analysis.eda.utils import configure_plotting
 from transaction_analysis.eda.visualizations import (
     plot_amount_distribution,
     plot_anomalies,
@@ -29,7 +34,7 @@ from transaction_analysis.eda.visualizations import (
     plot_pca_scree,
     plot_time_patterns,
     plot_top_mcc,
-    plot_top_merchants,
+    plot_top_states_by_amount,
     plot_transactions_over_time,
     plot_us_transaction_map,
     plot_user_transaction_distribution,
@@ -41,14 +46,15 @@ logger = logging.getLogger(__name__)
 
 
 class TransactionAnalysis:
-    def __init__(self, dataset_dir: Path, output_dir: Path):
-        self.dataset_dir = dataset_dir
+    def __init__(self, transactions: pd.DataFrame, output_dir: Path):
         self.output_dir = output_dir
         self.output_dir.mkdir(exist_ok=True, parents=True)
 
         configure_plotting()
 
-        self.transactions, self.users, self.cards = load_cleaned_data(self.dataset_dir)
+        self.transactions = transactions
+        self.users = load_users()
+        self.cards = load_cards()
 
         self._user_agg = None
         self._time_agg = None
@@ -154,8 +160,9 @@ class TransactionAnalysis:
         plot_fn(*args, self.output_dir, **kwargs)
 
 
-def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
-    analysis = TransactionAnalysis(dataset_dir=dataset_in_dir, output_dir=plots_out_dir)
+def run(plots_out_dir: Path, force: bool = False) -> None:
+    transactions = load_legit_transactions()
+    analysis = TransactionAnalysis(transactions=transactions, output_dir=plots_out_dir)
     analysis.print_summary_statistics()
     analysis.print_top_items(n=10)
 
@@ -168,7 +175,7 @@ def run(dataset_in_dir: Path, plots_out_dir: Path, force: bool = False) -> None:
     analysis.plot_graph(plot_time_patterns, analysis.transactions)
     analysis.plot_graph(plot_errors_and_darkweb, analysis.transactions, analysis.cards)
     analysis.plot_graph(plot_credit_score_by_gender, analysis.users)
-    analysis.plot_graph(plot_top_merchants, analysis.merchant_agg, top_n=15)
+    analysis.plot_graph(plot_top_states_by_amount, analysis.transactions, top_n=15)
     analysis.plot_graph(plot_top_mcc, analysis.mcc_agg, top_n=15)
     analysis.plot_graph(plot_user_transaction_distribution, analysis.user_agg)
     analysis.plot_graph(plot_correlation_heatmap, analysis.user_agg)

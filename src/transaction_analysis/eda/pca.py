@@ -124,6 +124,35 @@ def build_user_pca_features(
     return transactions_agg
 
 
+def build_client_fraud_profile(
+    transactions: pd.DataFrame,
+    users: pd.DataFrame,
+    cards: pd.DataFrame,
+    min_fraud_txns: int = 2,
+) -> pd.DataFrame:
+    """Per-client feature matrix labelled with a fraudster flag.
+
+    Reuses :func:`build_user_pca_features` for the behavioural / demographic /
+    card-portfolio features, then attaches two columns:
+
+    * ``fraud_count`` - number of *confirmed* fraudulent transactions for the
+      client. ``fraud`` is a nullable boolean (~1/3 of rows are unlabelled);
+      missing labels are treated as non-fraud so the count never overstates.
+    * ``is_fraudster`` - ``True`` when ``fraud_count >= min_fraud_txns``. The
+      default of 2 means "more than one fraudulent transaction": almost every
+      client has at least one, so a >1 threshold is what keeps the cohort a
+      meaningful minority instead of nearly the whole population.
+    """
+    features = build_user_pca_features(transactions, users, cards).copy()
+
+    fraud_flag = transactions["fraud"].fillna(False).astype(bool)
+    fraud_count = fraud_flag.groupby(transactions["client_id"], observed=True).sum()
+
+    features["fraud_count"] = fraud_count.reindex(features.index).fillna(0).astype(int)
+    features["is_fraudster"] = features["fraud_count"] >= min_fraud_txns
+    return features
+
+
 def _prepare_matrix(features: pd.DataFrame) -> pd.DataFrame:
     """Log-transform monetary columns, fill NaN, drop zero-variance cols."""
     X: pd.DataFrame = features.copy().astype(float)
