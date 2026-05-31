@@ -18,10 +18,10 @@ class XGBConfig:
 
 @dataclass
 class RFConfig:
-    n_estimators: int = 500
+    n_estimators: int = 200
     max_depth: int | None = None
     min_samples_leaf: int = 2
     class_weight: str = "balanced"
-    n_jobs: int = 1
+    n_jobs: int = -1
     random_state: int = 42
     verbose: bool = True

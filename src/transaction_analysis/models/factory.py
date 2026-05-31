@@ -42,6 +42,13 @@ def train_model(
     return model
 
 
+def evaluate_model(model: object, X_test: np.ndarray, y_test: np.ndarray) -> dict:
+    y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]  # Binary classification
+
+    return {"y_test": y_test, "y_pred": y_pred, "y_proba": y_proba}
+
+
 def cross_validate_model(
     name: ModelType,
     cfg,

@@ -41,7 +41,7 @@ def compare_models(
     name_b: str = "RF",
 ) -> pd.DataFrame:
     rows = []
-    scores_a = [score_fold(r)["roc_auc"] for r in results_a]  # import score_fold
+    scores_a = [score_fold(r)["roc_auc"] for r in results_a]
     scores_b = [score_fold(r)["roc_auc"] for r in results_b]
 
     rows.append({"test": "Wilcoxon (ROC-AUC)", **wilcoxon_test(scores_a, scores_b)})
