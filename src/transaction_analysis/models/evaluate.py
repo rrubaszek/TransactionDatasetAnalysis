@@ -1,6 +1,12 @@
+import logging
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, classification_report, roc_auc_score
+
+from transaction_analysis.models.factory import ModelType
+
+logger = logging.getLogger(__name__)
 
 METRICS = {
     "roc_auc": roc_auc_score,
@@ -23,10 +29,10 @@ def summarise_cv(fold_results: list[dict]) -> pd.DataFrame:
     return pd.concat([df, summary])
 
 
-def print_report(fold_results: list[dict], model_name: str) -> None:
+def print_report(fold_results: list[dict], model_name: ModelType) -> None:
     y_test_all = np.concatenate([r["y_test"] for r in fold_results])
     y_pred_all = np.concatenate([r["y_pred"] for r in fold_results])
     y_proba_all = np.concatenate([r["y_proba"] for r in fold_results])
-    print(f"\n{model_name} — pooled CV classification report")
-    print(classification_report(y_test_all, y_pred_all, digits=4))
-    print(f"ROC-AUC (pooled): {roc_auc_score(y_test_all, y_proba_all):.4f}")
+    logger.info(f"\n{model_name.name} — pooled CV classification report")
+    logger.info(classification_report(y_test_all, y_pred_all, digits=4))
+    logger.info(f"ROC-AUC (pooled): {roc_auc_score(y_test_all, y_proba_all):.4f}")

@@ -1,34 +1,49 @@
+from enum import Enum
+
+import joblib
 import numpy as np
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedKFold
+from tqdm import tqdm
 
 
-def build_model(name: str, cfg):
+class ModelType(Enum):
+    XGB = "xgb"
+    RF = "rf"
+
+
+def build_model(name: ModelType, cfg):
     """Factory — returns an unfitted sklearn-compatible estimator."""
-    if name == "xgb":
+    if name == ModelType.XGB:
         return xgb.XGBClassifier(**vars(cfg))
-    if name == "rf":
+    if name == ModelType.RF:
         return RandomForestClassifier(**vars(cfg))
     raise ValueError(f"Unknown model: {name}")
 
 
 def train_model(
-    name: str, cfg, X_train: np.ndarray, y_train: np.ndarray, X_val: np.ndarray = None, y_val: np.ndarray = None
+    name: ModelType,
+    cfg,
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray = None,
+    y_val: np.ndarray = None,
 ) -> object:
     """Train a model and return the fitted estimator."""
     model = build_model(name, cfg)
 
     fit_kwargs = {}
-    if name == "xgb" and X_val is not None and y_val is not None:
+    if name == ModelType.XGB and X_val is not None and y_val is not None:
         fit_kwargs = {"eval_set": [(X_val, y_val)], "verbose": False}
 
     model.fit(X_train, y_train, **fit_kwargs)
+
     return model
 
 
 def cross_validate_model(
-    name: str,
+    name: ModelType,
     cfg,
     X: np.ndarray,
     y: np.ndarray,
@@ -38,27 +53,31 @@ def cross_validate_model(
     cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     fold_results = []
 
-    for fold, (train_idx, test_idx) in enumerate(cv.split(X, y)):
-        X_train, X_test = X[train_idx], X[test_idx]
-        y_train, y_test = y[train_idx], y[test_idx]
+    with tqdm(total=n_splits, desc=f"CV {name.name}", unit="fold", leave=True) as pbar:
+        for fold, (train_idx, test_idx) in enumerate(cv.split(X, y)):
+            X_train, X_test = X[train_idx], X[test_idx]
+            y_train, y_test = y[train_idx], y[test_idx]
 
-        model = build_model(name, cfg)
+            model = build_model(name, cfg)
 
-        # XGBoost supports early stopping via eval_set; others ignore it cleanly
-        fit_kwargs = {}
-        if name == "xgb":
-            fit_kwargs = {"eval_set": [(X_test, y_test)], "verbose": False}
+            fit_kwargs = {}
+            if name == ModelType.XGB:
+                fit_kwargs = {"eval_set": [(X_test, y_test)], "verbose": False}
 
-        model.fit(X_train, y_train, **fit_kwargs)
+            with joblib.parallel_config(backend="threading"):
+                model.fit(X_train, y_train, **fit_kwargs)
 
-        fold_results.append(
-            {
-                "fold": fold,
-                "model": model,  # keep for feature importance later
-                "y_test": y_test,
-                "y_pred": model.predict(X_test),
-                "y_proba": model.predict_proba(X_test)[:, 1],
-            }
-        )
+            fold_results.append(
+                {
+                    "fold": fold,
+                    "model": model,
+                    "y_test": y_test,
+                    "y_pred": model.predict(X_test),
+                    "y_proba": model.predict_proba(X_test)[:, 1],
+                }
+            )
+
+            pbar.set_postfix(fold=fold + 1)
+            pbar.update(1)
 
     return fold_results

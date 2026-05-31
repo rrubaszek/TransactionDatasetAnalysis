@@ -12,6 +12,8 @@ class XGBConfig:
     tree_method: str = "hist"
     eval_metric: str = "aucpr"
     random_state: int = 42
+    n_threads: int = 1
+    verbose: bool = True
 
 
 @dataclass
@@ -20,5 +22,6 @@ class RFConfig:
     max_depth: int | None = None
     min_samples_leaf: int = 2
     class_weight: str = "balanced"
-    n_jobs: int = -1
+    n_jobs: int = 1
     random_state: int = 42
+    verbose: bool = True
