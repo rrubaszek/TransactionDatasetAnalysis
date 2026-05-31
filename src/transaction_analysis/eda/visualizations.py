@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.patches import Patch
 
 from transaction_analysis.eda.geoanalysis import (
     load_us_geometry,
@@ -224,6 +225,48 @@ def plot_top_states_by_amount(
     plt.close()
 
 
+def plot_state_fraud_rate(
+    transactions: pd.DataFrame,
+    output_dir: Path,
+    top_n: int = 5,
+    min_transactions: int = 100,
+) -> None:
+    df = transactions.loc[transactions["fraud"].notna(), ["merchant_state", "fraud"]].copy()
+    df["fraud"] = df["fraud"].astype(bool)
+    df = df.dropna(subset=["merchant_state"])
+
+    per_state = df.groupby("merchant_state", observed=True)["fraud"].agg(txn_count="size", fraud_pct="mean")
+    per_state["fraud_pct"] *= 100
+
+    eligible = per_state[per_state["txn_count"] >= min_transactions]
+    top = eligible.sort_values("fraud_pct", ascending=False).head(top_n)
+
+    if top.empty:
+        return
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    x = range(len(top))
+    bars = ax.bar(x, top["fraud_pct"], color="steelblue", edgecolor="black", alpha=0.85)
+
+    for bar, pct in zip(bars, top["fraud_pct"], strict=False):
+        ax.text(bar.get_x() + bar.get_width() / 2, pct, f"{pct:.2f}", ha="center", va="bottom", fontsize=8)
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(top.index, rotation=60, ha="right")
+    ax.set_xlabel("Stan / kraj sprzedawcy (merchant_state)")
+    ax.set_ylabel("Procent transakcji oszukańczych (%)")
+    ax.set_title(
+        f"Top {top_n} stanów i krajów wg procentu transakcji oszukańczych",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.grid(alpha=0.3, axis="y")
+
+    plt.tight_layout()
+    save_figure("state_fraud_rate.png", output_dir)
+    plt.close()
+
+
 def plot_top_mcc(
     mcc_agg: pd.DataFrame,
     output_dir: Path,
@@ -245,11 +288,84 @@ def plot_top_mcc(
     plt.close()
 
 
+def plot_merchant_fraud_rate(
+    transactions: pd.DataFrame,
+    output_dir: Path,
+    mcc_codes: pd.DataFrame | None = None,
+    top_n: int = 25,
+    min_transactions: int = 50,
+) -> None:
+    df = transactions.loc[transactions["fraud"].notna(), ["merchant_id", "mcc", "fraud"]].copy()
+    df["fraud"] = df["fraud"].astype(bool)
+
+    per_merchant = df.groupby("merchant_id", observed=True)["fraud"].agg(txn_count="size", fraud_pct="mean")
+    per_merchant["fraud_pct"] *= 100
+
+    dominant_mcc = (
+        df.groupby(["merchant_id", "mcc"], observed=True)
+        .size()
+        .rename("n")
+        .reset_index()
+        .sort_values("n")
+        .drop_duplicates("merchant_id", keep="last")
+        .set_index("merchant_id")["mcc"]
+        .astype(int)
+    )
+    per_merchant["mcc"] = dominant_mcc
+
+    eligible = per_merchant[per_merchant["txn_count"] >= min_transactions]
+    top = eligible.sort_values("fraud_pct", ascending=False).head(top_n)
+    top = top.sort_values(["mcc", "fraud_pct"], ascending=[True, False])
+
+    if top.empty:
+        return
+
+    mccs = top["mcc"].unique()
+    palette = sns.color_palette("tab20", n_colors=len(mccs))
+    mcc_to_color = dict(zip(mccs, palette, strict=False))
+    bar_colors = [mcc_to_color[m] for m in top["mcc"]]
+
+    mcc_label: dict[int, str] = {}
+    if mcc_codes is not None:
+        mcc_label = {int(i): str(d) for i, d in zip(mcc_codes["id"], mcc_codes["description"], strict=False)}
+
+    fig, ax = plt.subplots(figsize=(16, 7))
+    x = range(len(top))
+    bars = ax.bar(x, top["fraud_pct"], color=bar_colors, edgecolor="black", alpha=0.85)
+
+    for bar, pct in zip(bars, top["fraud_pct"], strict=False):
+        ax.text(bar.get_x() + bar.get_width() / 2, pct, f"{pct:.1f}", ha="center", va="bottom", fontsize=7)
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(top.index.astype(int), rotation=60, ha="right", fontsize=8)
+    ax.set_xlabel("ID sprzedawcy (merchant_id)")
+    ax.set_ylabel("Procent transakcji oszukańczych (%)")
+    ax.set_title(
+        f"Top {top_n} sprzedawców wg procentu transakcji oszukańczych (pogrupowani wg MCC)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.grid(alpha=0.3, axis="y")
+
+    handles = [
+        Patch(
+            facecolor=mcc_to_color[m],
+            edgecolor="black",
+            label=f"{m} - {mcc_label[m]}" if m in mcc_label else f"MCC {m}",
+        )
+        for m in mccs
+    ]
+    ax.legend(handles=handles, title="MCC", fontsize=8, title_fontsize=9, loc="upper left", bbox_to_anchor=(1.01, 1.0))
+
+    plt.tight_layout()
+    save_figure("merchant_fraud_rate_by_mcc.png", output_dir)
+    plt.close()
+
+
 def plot_user_transaction_distribution(
     user_agg: pd.DataFrame,
     output_dir: Path,
 ) -> None:
-    """Per-user distributions: txn count, total amount, avg amount, frequency."""
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
     axes[0, 0].hist(user_agg["txn_count"], bins=50, color="steelblue", edgecolor="black", alpha=0.7)
@@ -354,6 +470,355 @@ def plot_demographic_patterns(
 
     plt.tight_layout()
     save_figure("demographic_patterns.png", output_dir)
+    plt.close()
+
+
+_FRAUDSTER_PROFILE_FEATURES: list[str] = [
+    "txn_count",
+    "amount_mean",
+    "amount_max",
+    "unique_merchants",
+    "mcc_entropy",
+    "share_online",
+    "share_swipe",
+    "night_share",
+    "error_rate",
+    "age",
+    "credit_score",
+    "yearly_income_usd",
+    "debt_to_income",
+    "num_credit_cards",
+    "avg_credit_limit",
+]
+
+
+def plot_fraudster_profile(
+    profile: pd.DataFrame,
+    output_dir: Path,
+    features: dict[str, str] | None = None,
+) -> None:
+    features = features or _FRAUDSTER_PROFILE_FEATURES
+    cols = [c for c in features if c in profile.columns]
+    fraud = profile[profile["is_fraudster"]]
+    rest = profile[~profile["is_fraudster"]]
+    if fraud.empty or rest.empty or not cols:
+        return
+
+    rows = []
+    for col in cols:
+        a = pd.to_numeric(fraud[col], errors="coerce").dropna()
+        b = pd.to_numeric(rest[col], errors="coerce").dropna()
+        if len(a) < 2 or len(b) < 2:
+            continue
+        pooled = np.sqrt((a.var(ddof=1) + b.var(ddof=1)) / 2)
+        if pooled <= 0:
+            continue
+        rows.append((col, (a.mean() - b.mean()) / pooled))
+
+    if not rows:
+        return
+    prof = pd.DataFrame(rows, columns=["feature", "d"]).sort_values("d")
+    colors = ["#ff6b6b" if v > 0 else "#4c72b0" for v in prof["d"]]
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax.barh(range(len(prof)), prof["d"], color=colors, edgecolor="black", alpha=0.85)
+    ax.set_yticks(range(len(prof)))
+    ax.set_yticklabels(prof["feature"])
+    ax.axvline(0, color="gray", linewidth=1)
+    ax.set_xlabel("Standaryzowana różnica średnich (Cohen's d):  oszust − pozostali")
+    ax.set_title(
+        f"Profil klientów oszukańczych: n={len(fraud):,} vs {len(rest):,}",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.grid(alpha=0.3, axis="x")
+    for i, v in enumerate(prof["d"]):
+        ax.text(
+            v + (0.01 if v >= 0 else -0.01),
+            i,
+            f"{v:+.2f}",
+            va="center",
+            ha="left" if v >= 0 else "right",
+            fontsize=8,
+        )
+    plt.tight_layout()
+    save_figure("fraudster_profile.png", output_dir)
+    plt.close()
+
+
+def plot_fraudster_channel_mix(
+    profile: pd.DataFrame,
+    output_dir: Path,
+) -> None:
+    """Channel/timing behaviour: fraudsters vs the rest, as mean per-client shares."""
+    feature_labels = {
+        "share_online": "Online",
+        "share_swipe": "Swipe",
+        "share_chip": "Chip",
+        "night_share": "Nocne (22-6)",
+        "weekend_share": "Weekend",
+    }
+    cols = [c for c in feature_labels if c in profile.columns]
+    fraud = profile[profile["is_fraudster"]]
+    rest = profile[~profile["is_fraudster"]]
+    if fraud.empty or rest.empty or not cols:
+        return
+
+    fraud_means = [fraud[c].mean() * 100 for c in cols]
+    rest_means = [rest[c].mean() * 100 for c in cols]
+    labels = [feature_labels[c] for c in cols]
+
+    x = np.arange(len(cols))
+    width = 0.38
+    fig, ax = plt.subplots(figsize=(12, 6))
+    bar_groups = [
+        ax.bar(
+            x - width / 2,
+            fraud_means,
+            width,
+            label=f"Oszuści (n={len(fraud):,})",
+            color="#ff6b6b",
+            edgecolor="black",
+            alpha=0.85,
+        ),
+        ax.bar(
+            x + width / 2,
+            rest_means,
+            width,
+            label=f"Pozostali (n={len(rest):,})",
+            color="#4c72b0",
+            edgecolor="black",
+            alpha=0.85,
+        ),
+    ]
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Średni udział transakcji klienta (%)")
+    ax.set_title("Kanały i pory transakcji: oszuści vs pozostali", fontsize=12, fontweight="bold")
+    ax.legend()
+    ax.grid(alpha=0.3, axis="y")
+    for bars in bar_groups:
+        for bar in bars:
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{bar.get_height():.0f}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+    plt.tight_layout()
+    save_figure("fraudster_channel_mix.png", output_dir)
+    plt.close()
+
+
+def plot_fraud_frequent_age(
+    profile: pd.DataFrame,
+    output_dir: Path,
+    top_frac: float = 0.1,
+) -> None:
+    df = profile[["age", "fraud_count"]].copy()
+    df["age"] = pd.to_numeric(df["age"], errors="coerce")
+    df = df.dropna(subset=["age"])
+    df = df[(df["age"] >= 18) & (df["age"] <= 100)]
+    if df.empty:
+        return
+
+    cutoff = df["fraud_count"].quantile(1 - top_frac)
+    top = df[df["fraud_count"] >= cutoff]
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    bins = np.arange(df["age"].min(), df["age"].max() + 5, 5)
+    axes[0].hist(
+        df["age"],
+        bins=bins,
+        color="#cccccc",
+        edgecolor="white",
+        alpha=0.7,
+        density=True,
+        label=f"Wszyscy klienci (n={len(df):,})",
+    )
+    axes[0].hist(
+        top["age"],
+        bins=bins,
+        color="#ff6b6b",
+        edgecolor="black",
+        alpha=0.6,
+        density=True,
+        label=f"Najczęstsi oszuści — top {top_frac:.0%} (n={len(top):,})",
+    )
+    axes[0].axvline(
+        top["age"].median(),
+        color="crimson",
+        linestyle="--",
+        label=f"Mediana wieku: {top['age'].median():.0f}",
+    )
+    axes[0].set_xlabel("Wiek klienta")
+    axes[0].set_ylabel("Gęstość")
+    axes[0].set_title("Rozkład wieku najczęstszych oszustów", fontsize=12, fontweight="bold")
+    axes[0].legend(fontsize=9)
+    axes[0].grid(alpha=0.3)
+
+    age_bins = [18, 25, 35, 45, 55, 65, 75, 101]
+    age_labels = ["18-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+"]
+    df["age_group"] = pd.cut(df["age"], bins=age_bins, labels=age_labels, right=False)
+    grp = df.groupby("age_group", observed=True)["fraud_count"].mean()
+    axes[1].bar(range(len(grp)), grp.values, color="steelblue", edgecolor="black", alpha=0.8)
+    axes[1].set_xticks(range(len(grp)))
+    axes[1].set_xticklabels(grp.index, rotation=45, ha="right")
+    axes[1].set_xlabel("Grupa wiekowa")
+    axes[1].set_ylabel("Śr. liczba transakcji oszukańczych")
+    axes[1].set_title("Średnia liczba oszustw wg grupy wiekowej", fontsize=12, fontweight="bold")
+    axes[1].grid(alpha=0.3, axis="y")
+    for i, v in enumerate(grp.values):
+        axes[1].text(i, v, f"{v:.1f}", ha="center", va="bottom", fontsize=8)
+
+    plt.tight_layout()
+    save_figure("fraud_frequent_age.png", output_dir)
+    plt.close()
+
+
+def plot_merchant_fraud_rate_volume(
+    transactions: pd.DataFrame,
+    output_dir: Path,
+    mcc_codes: pd.DataFrame | None = None,
+    min_transactions: int = 50,
+    annotate_top: int = 8,
+    max_mcc_colors: int = 10,
+) -> None:
+    df = transactions.loc[transactions["fraud"].notna(), ["merchant_id", "mcc", "amount_usd", "fraud"]].copy()
+    df["fraud"] = df["fraud"].astype(bool)
+    df["amount_usd"] = pd.to_numeric(df["amount_usd"], errors="coerce")
+    df["fraud_amount"] = df["amount_usd"].where(df["fraud"], 0.0).clip(lower=0)
+
+    per = df.groupby("merchant_id", observed=True).agg(
+        txn_count=("fraud", "size"),
+        fraud_pct=("fraud", "mean"),
+        fraud_amount=("fraud_amount", "sum"),
+    )
+    per["fraud_pct"] *= 100
+
+    dominant_mcc = (
+        df.groupby(["merchant_id", "mcc"], observed=True)
+        .size()
+        .rename("n")
+        .reset_index()
+        .sort_values("n")
+        .drop_duplicates("merchant_id", keep="last")
+        .set_index("merchant_id")["mcc"]
+        .astype(int)
+    )
+    per["mcc"] = dominant_mcc
+
+    eligible = per[per["txn_count"] >= min_transactions].copy()
+    if eligible.empty:
+        return
+
+    top_mccs = eligible["mcc"].value_counts().head(max_mcc_colors).index.tolist()
+    palette = sns.color_palette("tab10", n_colors=len(top_mccs))
+    mcc_to_color = dict(zip(top_mccs, palette, strict=False))
+    bar_colors = [mcc_to_color.get(m, "#cccccc") for m in eligible["mcc"]]
+
+    fa = eligible["fraud_amount"]
+    sizes = 20 + 580 * (fa / fa.max()) if fa.max() > 0 else pd.Series(40.0, index=eligible.index)
+
+    fig, ax = plt.subplots(figsize=(14, 8))
+    ax.scatter(
+        eligible["txn_count"],
+        eligible["fraud_pct"],
+        s=sizes,
+        c=bar_colors,
+        alpha=0.7,
+        edgecolor="black",
+        linewidth=0.3,
+    )
+    ax.set_xscale("log")
+    ax.set_xlabel("Liczba transakcji sprzedawcy (skala log)")
+    ax.set_ylabel("Procent transakcji oszukańczych (%)")
+    ax.set_title(
+        "Sprzedawcy: wolumen vs odsetek oszustw (rozmiar bąbla = kwota oszustw $)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.grid(alpha=0.3)
+
+    for mid, row in eligible.sort_values("fraud_pct", ascending=False).head(annotate_top).iterrows():
+        ax.annotate(
+            str(int(mid)),
+            (row["txn_count"], row["fraud_pct"]),
+            fontsize=8,
+            fontweight="bold",
+            xytext=(4, 2),
+            textcoords="offset points",
+        )
+
+    mcc_label: dict[int, str] = {}
+    if mcc_codes is not None:
+        mcc_label = {int(i): str(d) for i, d in zip(mcc_codes["id"], mcc_codes["description"], strict=False)}
+    handles = [
+        Patch(
+            facecolor=mcc_to_color[m],
+            edgecolor="black",
+            label=f"{m} - {mcc_label[m]}" if m in mcc_label else f"MCC {m}",
+        )
+        for m in top_mccs
+    ]
+    handles.append(Patch(facecolor="#cccccc", edgecolor="black", label="Inne MCC"))
+    ax.legend(
+        handles=handles,
+        title="Dominujące MCC",
+        fontsize=8,
+        title_fontsize=9,
+        loc="upper left",
+        bbox_to_anchor=(1.01, 1.0),
+    )
+
+    plt.tight_layout()
+    save_figure("merchant_fraud_rate_volume.png", output_dir)
+    plt.close()
+
+
+def plot_mcc_fraud_rate(
+    transactions: pd.DataFrame,
+    output_dir: Path,
+    mcc_codes: pd.DataFrame | None = None,
+    top_n: int = 15,
+    min_transactions: int = 200,
+) -> None:
+    df = transactions.loc[transactions["fraud"].notna(), ["mcc", "fraud"]].copy()
+    df["fraud"] = df["fraud"].astype(bool)
+
+    per = df.groupby("mcc", observed=True)["fraud"].agg(txn_count="size", fraud_pct="mean")
+    per["fraud_pct"] *= 100
+
+    eligible = per[per["txn_count"] >= min_transactions]
+    top = eligible.sort_values("fraud_pct", ascending=False).head(top_n)
+    if top.empty:
+        return
+
+    mcc_label: dict[int, str] = {}
+    if mcc_codes is not None:
+        mcc_label = {int(i): str(d) for i, d in zip(mcc_codes["id"], mcc_codes["description"], strict=False)}
+    labels = [f"{int(m)} - {mcc_label[int(m)]}" if int(m) in mcc_label else f"MCC {int(m)}" for m in top.index]
+
+    fig, ax = plt.subplots(figsize=(13, 8))
+    ax.barh(range(len(top)), top["fraud_pct"], color="indianred", edgecolor="black", alpha=0.85)
+    ax.set_yticks(range(len(top)))
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("Procent transakcji oszukańczych (%)")
+    ax.set_title(
+        f"Top {top_n} kategorii MCC wg odsetka oszustw (min {min_transactions} transakcji)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.grid(alpha=0.3, axis="x")
+    for i, (pct, n) in enumerate(zip(top["fraud_pct"], top["txn_count"], strict=False)):
+        ax.text(pct, i, f"  {pct:.2f}%  (n={int(n):,})", va="center", fontsize=8)
+
+    plt.tight_layout()
+    save_figure("mcc_fraud_rate.png", output_dir)
     plt.close()
 
 
@@ -514,7 +979,6 @@ def plot_us_transaction_map(
     top_n: int = 300,
     force: bool = False,
 ) -> None:
-
     geo_df = prepare_us_transaction_geo_data(
         transactions=transactions,
         amount_col=amount_col,
