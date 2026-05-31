@@ -3,7 +3,6 @@ import zipfile
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import requests
 import seaborn as sns
 
@@ -62,20 +61,6 @@ _FALLBACK_STATE_CENTERS: dict[str, tuple[float, float]] = {
     "WY": (43.0, -107.6),
     "DC": (38.9, -77.0),
 }
-
-
-def load_cleaned_data(dataset_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    transactions_path = dataset_dir / "transactions.parquet"
-
-    transactions = pd.read_parquet(transactions_path)
-
-    users_path = dataset_dir / "users.parquet"
-    cards_path = dataset_dir / "cards.parquet"
-
-    users = pd.read_parquet(users_path) if users_path.exists() else pd.DataFrame()
-    cards = pd.read_parquet(cards_path) if cards_path.exists() else pd.DataFrame()
-
-    return transactions, users, cards
 
 
 def configure_plotting() -> None:

@@ -5,8 +5,8 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 from transaction_analysis.config.paths import FRAUD_DATASET_DIR
+from transaction_analysis.data import loader
 from transaction_analysis.eda.aggregations import aggregate_transactions_by_user
-from transaction_analysis.eda.utils import load_cleaned_data
 
 logger = logging.getLogger(__name__)
 CLEANED_DIR = FRAUD_DATASET_DIR / "cleaned"
@@ -27,8 +27,10 @@ DROP_COLS = {
 
 def _load_model_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     logger.info("Loading data...")
-    transactions, users, cards = load_cleaned_data(dataset_dir=CLEANED_DIR)
-    fraud_labels = pd.read_parquet(CLEANED_DIR / "fraud_labels.parquet")
+    transactions = loader.load_all_transactions()
+    users = loader.load_users()
+    cards = loader.load_cards()
+    fraud_labels = loader.load_fraud_labels()
 
     df = transactions.merge(
         fraud_labels.rename(columns={"id": "transaction_id"})[["transaction_id", "fraud"]],
