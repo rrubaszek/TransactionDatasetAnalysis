@@ -25,3 +25,9 @@ class RFConfig:
     n_jobs: int = -1
     random_state: int = 42
     verbose: bool = True
+
+
+@dataclass
+class CrossValidationConfig:
+    n_splits: int = 5
+    random_state: int = 42

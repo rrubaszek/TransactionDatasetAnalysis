@@ -25,23 +25,6 @@ DROP_COLS = {
 }
 
 
-def _load_model_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    logger.info("Loading data...")
-    transactions = loader.load_all_transactions()
-    users = loader.load_users()
-    cards = loader.load_cards()
-    fraud_labels = loader.load_fraud_labels()
-
-    df = transactions.merge(
-        fraud_labels.rename(columns={"id": "transaction_id"})[["transaction_id", "fraud"]],
-        on="transaction_id",
-        how="left",
-    )
-    df["fraud"] = df["fraud"].fillna(False).astype(int)
-    logger.info(f"Transactions: {len(df):,}  |  Fraud: {df['fraud'].sum():,}  |  Fraud rate: {df['fraud'].mean():.4%}")
-    return df, transactions, users, cards
-
-
 def _add_velocity_features(transactions: pd.DataFrame) -> pd.DataFrame:
     dates = transactions.sort_values("date").groupby("client_id")["date"]
     inter_txn_hours = dates.apply(lambda x: x.diff().dt.total_seconds().div(3600).dropna())
@@ -186,14 +169,6 @@ def _prepare_risk_features(user_agg: pd.DataFrame) -> pd.DataFrame:
     return user_agg
 
 
-def _prepare_columns(user_agg: pd.DataFrame) -> pd.DataFrame:
-    if "gender" in user_agg.columns:
-        user_agg["gender"] = LabelEncoder().fit_transform(user_agg["gender"].astype(str))
-
-    date_cols = [c for c in user_agg.columns if pd.api.types.is_datetime64_any_dtype(user_agg[c])]
-    return user_agg.drop(columns=date_cols)
-
-
 def _join_user_agg(df: pd.DataFrame, user_agg: pd.DataFrame) -> pd.DataFrame:
     logger.info("Joining user-level features onto transactions...")
     return df.merge(
@@ -224,10 +199,12 @@ def _prepare_transaction_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
-    for col in ["transaction_type", "mcc"]:
+    for col in ["transaction_type", "mcc", "gender"]:
         if col in df.columns:
             df[col] = LabelEncoder().fit_transform(df[col].astype(str))
-    return df
+
+    date_cols = [c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])]
+    return df.drop(columns=date_cols)
 
 
 def build_features() -> tuple[pd.DataFrame, pd.Series]:
@@ -241,11 +218,22 @@ def build_features() -> tuple[pd.DataFrame, pd.Series]:
     y : pd.Series
         Binary fraud label (0 / 1).
     """
-    df, transactions, users, cards = _load_model_data()
+    logger.info("Loading data...")
+    transactions = loader.load_all_transactions()
+    users = loader.load_users()
+    cards = loader.load_cards()
+    fraud_labels = loader.load_fraud_labels()
+
+    df = transactions.merge(
+        fraud_labels.rename(columns={"id": "transaction_id"})[["transaction_id", "fraud"]],
+        on="transaction_id",
+        how="left",
+    )
+    df["fraud"] = df["fraud"].fillna(False).astype(np.int8)
+    logger.info(f"Transactions: {len(df):,}  |  Fraud: {df['fraud'].sum():,}  |  Fraud rate: {df['fraud'].mean():.4%}")
 
     user_agg = _compute_user_agg(transactions, users, cards)
     user_agg = _prepare_risk_features(user_agg)
-    user_agg = _prepare_columns(user_agg)
 
     df = _join_user_agg(df, user_agg)
     df = _prepare_transaction_features(df)
@@ -270,6 +258,6 @@ def build_features() -> tuple[pd.DataFrame, pd.Series]:
     float_cols = X.select_dtypes("float64").columns
     X[float_cols] = X[float_cols].astype(np.float16)
 
-    y = df["fraud"].astype(np.int32)
+    y = df["fraud"].astype(np.int8)
 
     return X, y

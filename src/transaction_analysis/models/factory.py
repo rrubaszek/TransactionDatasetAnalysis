@@ -1,6 +1,5 @@
 from enum import Enum
 
-import joblib
 import numpy as np
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
@@ -52,15 +51,14 @@ def evaluate_model(model: object, X_test: np.ndarray, y_test: np.ndarray) -> dic
 def cross_validate_model(
     name: ModelType,
     cfg,
+    cv_cfg,
     X: np.ndarray,
     y: np.ndarray,
-    n_splits: int = 5,
-    random_state: int = 42,
 ) -> list[dict]:
-    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    cv = StratifiedKFold(n_splits=cv_cfg.n_splits, shuffle=True, random_state=cv_cfg.random_state)
     fold_results = []
 
-    with tqdm(total=n_splits, desc=f"CV {name.name}", unit="fold", leave=True) as pbar:
+    with tqdm(total=cv_cfg.n_splits, desc=f"CV {name.name}", unit="fold", leave=True) as pbar:
         for fold, (train_idx, test_idx) in enumerate(cv.split(X, y)):
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
@@ -71,8 +69,7 @@ def cross_validate_model(
             if name == ModelType.XGB:
                 fit_kwargs = {"eval_set": [(X_test, y_test)], "verbose": False}
 
-            with joblib.parallel_config(backend="threading"):
-                model.fit(X_train, y_train, **fit_kwargs)
+            model.fit(X_train, y_train, **fit_kwargs)
 
             fold_results.append(
                 {
