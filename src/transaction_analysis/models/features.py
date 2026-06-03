@@ -222,20 +222,18 @@ def build_features() -> tuple[pd.DataFrame, pd.Series]:
     transactions = loader.load_all_transactions()
     users = loader.load_users()
     cards = loader.load_cards()
-    fraud_labels = loader.load_fraud_labels()
 
-    df = transactions.merge(
-        fraud_labels.rename(columns={"id": "transaction_id"})[["transaction_id", "fraud"]],
-        on="transaction_id",
-        how="left",
+    transactions["fraud"] = transactions["fraud"].fillna(False).astype(np.int8)
+
+    logger.info(
+        f"Transactions: {len(transactions):,}  |  Fraud: {transactions['fraud'].sum():,}\
+        |  Fraud rate: {transactions['fraud'].mean():.4%}"
     )
-    df["fraud"] = df["fraud"].fillna(False).astype(np.int8)
-    logger.info(f"Transactions: {len(df):,}  |  Fraud: {df['fraud'].sum():,}  |  Fraud rate: {df['fraud'].mean():.4%}")
 
     user_agg = _compute_user_agg(transactions, users, cards)
     user_agg = _prepare_risk_features(user_agg)
 
-    df = _join_user_agg(df, user_agg)
+    df = _join_user_agg(transactions, user_agg)
     df = _prepare_transaction_features(df)
     df = _encode_categoricals(df)
 
