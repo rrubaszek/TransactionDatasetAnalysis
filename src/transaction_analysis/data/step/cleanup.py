@@ -108,7 +108,6 @@ def run(dataset_in_dir: Path, dataset_out_dir: Path, force: bool = False) -> Non
     cleanup_transactions(dataset_in_dir / "transactions.parquet", dataset_out_dir / "transactions.parquet")
     cleanup_users(dataset_in_dir / "users.parquet", dataset_out_dir / "users.parquet")
 
-    # Join transactions with fraud labels
     transactions_fraud_file = dataset_out_dir / "transactions_with_fraud.parquet"
     if transactions_fraud_file.exists() and not force:
         logger.info("Transactions with fraud already created, skipping. Use `force=True` to re-run.")

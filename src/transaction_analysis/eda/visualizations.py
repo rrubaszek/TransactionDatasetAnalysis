@@ -831,7 +831,6 @@ def plot_pca_scree(
     explained_variance: np.ndarray,
     output_dir: Path,
 ) -> None:
-    """Scree (bars) + cumulative variance (line) for a fitted PCA."""
     n = len(explained_variance)
     pcs = np.arange(1, n + 1)
     cum = np.cumsum(explained_variance)
@@ -866,13 +865,11 @@ def plot_pca_biplot(
     output_dir: Path,
     top_features: int = 8,
 ) -> None:
-    """PC1-PC2 score scatter with top-loading feature arrows."""
     pc_x, pc_y = "PC1", "PC2"
 
     fig, ax = plt.subplots(figsize=(12, 8))
     ax.scatter(scores[pc_x], scores[pc_y], s=14, alpha=0.35, color="steelblue", edgecolor="none")
 
-    # Pick top features by magnitude in the PC1-PC2 plane.
     mag = np.sqrt(loadings[pc_x] ** 2 + loadings[pc_y] ** 2)
     top = mag.nlargest(top_features).index
 
@@ -901,11 +898,9 @@ def plot_pca_fraud_overlay(
     fraud_rate: pd.Series,
     output_dir: Path,
 ) -> None:
-    """PC1-PC2 scatter colored by per-user fraud rate."""
     fr = fraud_rate.reindex(scores.index).fillna(0.0)
 
     fig, ax = plt.subplots(figsize=(12, 8))
-    # Plot zero-fraud users first as a faint background, then non-zero on top.
     zero = fr == 0
     ax.scatter(scores.loc[zero, "PC1"], scores.loc[zero, "PC2"], s=10, alpha=0.2, color="lightgray")
     sc = ax.scatter(
@@ -939,7 +934,6 @@ def plot_pca_clusters(
     loadings: pd.DataFrame,
     output_dir: Path,
 ) -> None:
-    """PC1-PC2 scatter colored by KMeans cluster, with top loadings as labels."""
     clusters = clusters.reindex(scores.index)
     palette = sns.color_palette("tab10", n_colors=clusters.nunique())
 
@@ -956,7 +950,6 @@ def plot_pca_clusters(
             edgecolor="none",
         )
 
-    # Label each cluster with its top-magnitude loading feature (so the axes "read").
     top_pc1 = loadings["PC1"].abs().idxmax()
     top_pc2 = loadings["PC2"].abs().idxmax()
     pc1_sign = "+" if loadings.loc[top_pc1, "PC1"] > 0 else "-"

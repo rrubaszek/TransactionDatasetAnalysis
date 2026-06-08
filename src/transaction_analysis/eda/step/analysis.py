@@ -40,8 +40,6 @@ from transaction_analysis.eda.visualizations import (
     plot_user_transaction_distribution,
 )
 
-"""Entry point for EDA analysis."""
-
 logger = logging.getLogger(__name__)
 
 

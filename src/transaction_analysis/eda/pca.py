@@ -24,13 +24,13 @@ MONETARY_COLS = (
 
 @dataclass
 class PCAResult:
-    scores: pd.DataFrame  # (n_users, n_components) PC scores, indexed by client_id
-    loadings: pd.DataFrame  # (n_features, n_components)
-    explained_variance: np.ndarray  # variance ratio per component
-    feature_matrix: pd.DataFrame  # the standardized matrix used as PCA input (debugging/reuse)
-    raw_features: pd.DataFrame  # pre-scaling, post-engineering features (indexed by client_id)
-    fraud_rate: pd.Series | None  # per-user fraud rate, if labels provided
-    clusters: pd.Series | None  # KMeans cluster labels on first k PCs
+    scores: pd.DataFrame
+    loadings: pd.DataFrame
+    explained_variance: np.ndarray
+    feature_matrix: pd.DataFrame
+    raw_features: pd.DataFrame
+    fraud_rate: pd.Series | None
+    clusters: pd.Series | None
     pca: PCA
     scaler: StandardScaler
 
@@ -40,13 +40,6 @@ def build_user_pca_features(
     users: pd.DataFrame,
     cards: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Engineer a wide numeric matrix indexed by client_id, ready for PCA.
-
-    Combines spend intensity, channel mix, diversity, temporal rhythm, error
-    behavior, demographics, and card-portfolio features. Designed to be robust
-    to missing optional fields.
-    """
-    # transaction aggregation
     client_transactions = transactions.groupby("client_id", observed=True)
     transactions_agg: pd.DataFrame = client_transactions.agg(
         txn_count=("transaction_id", "count"),
@@ -59,22 +52,18 @@ def build_user_pca_features(
         unique_mcc=("mcc", "nunique"),
     )
 
-    # channel mix
     transaction_type_share = (
         transactions.groupby(["client_id", "transaction_type"], observed=True).size().unstack(fill_value=0)
     )
     client_transaction_count = transaction_type_share.sum(axis=1)
     transaction_type_share = transaction_type_share.div(client_transaction_count, axis=0).fillna(0.0)
 
-    # column names of online/swipe/chip transactions share
     transaction_type_share.columns = [f"share_{str(c).split()[0].lower()}" for c in transaction_type_share.columns]
     transactions_agg = transactions_agg.join(transaction_type_share, how="left")
 
-    # refund and error signals
     transactions_agg["refund_share"] = client_transactions["amount_usd"].apply(lambda s: (s < 0).mean())
     transactions_agg["error_rate"] = client_transactions["errors"].apply(lambda s: s.notna().mean())
 
-    # temporal rhythm
     hours = transactions["date"].dt.hour
     day_of_week = transactions["date"].dt.dayofweek
     transactions_agg["night_share"] = (
@@ -84,7 +73,6 @@ def build_user_pca_features(
         (day_of_week >= 5).astype("int8").groupby(transactions["client_id"], observed=True).mean()
     )
 
-    # mcc diversity (Shannon entropy of spend distribution across MCCs)
     mcc_counts = transactions.groupby(["client_id", "mcc"], observed=True).size().unstack(fill_value=0)
     client_mcc_sum = mcc_counts.sum(axis=1)
     mcc_share = mcc_counts.div(client_mcc_sum, axis=0)
@@ -92,7 +80,6 @@ def build_user_pca_features(
         entropy = -(mcc_share * np.log(mcc_share.where(mcc_share > 0))).sum(axis=1)
     transactions_agg["mcc_entropy"] = entropy
 
-    # demographics
     users["birth_date"] = pd.to_datetime(users["birth_date"], errors="coerce")
     today_date_ref = transactions["date"].max()
     users["age"] = ((today_date_ref - users["birth_date"]).dt.days / 365.25).astype("int8")
@@ -107,7 +94,6 @@ def build_user_pca_features(
     ]
     transactions_agg = transactions_agg.join(users.set_index("id")[users_demographic_cols], how="left")
 
-    # card portfolio
     cards["acct_open_date"] = pd.to_datetime(cards["acct_open_date"], errors="coerce")
     today_date_ref = transactions["date"].max()
     cards["card_age_years"] = ((today_date_ref - cards["acct_open_date"]).dt.days / 365.25).astype("int8")
@@ -130,19 +116,6 @@ def build_client_fraud_profile(
     cards: pd.DataFrame,
     min_fraud_txns: int = 2,
 ) -> pd.DataFrame:
-    """Per-client feature matrix labelled with a fraudster flag.
-
-    Reuses :func:`build_user_pca_features` for the behavioural / demographic /
-    card-portfolio features, then attaches two columns:
-
-    * ``fraud_count`` - number of *confirmed* fraudulent transactions for the
-      client. ``fraud`` is a nullable boolean (~1/3 of rows are unlabelled);
-      missing labels are treated as non-fraud so the count never overstates.
-    * ``is_fraudster`` - ``True`` when ``fraud_count >= min_fraud_txns``. The
-      default of 2 means "more than one fraudulent transaction": almost every
-      client has at least one, so a >1 threshold is what keeps the cohort a
-      meaningful minority instead of nearly the whole population.
-    """
     features = build_user_pca_features(transactions, users, cards).copy()
 
     fraud_flag = transactions["fraud"].fillna(False).astype(bool)
@@ -154,7 +127,6 @@ def build_client_fraud_profile(
 
 
 def _prepare_matrix(features: pd.DataFrame) -> pd.DataFrame:
-    """Log-transform monetary columns, fill NaN, drop zero-variance cols."""
     X: pd.DataFrame = features.copy().astype(float)
 
     for col in MONETARY_COLS:
@@ -177,10 +149,6 @@ def compute_user_fraud_rate(
     transactions: pd.DataFrame,
     fraud_labels: pd.DataFrame,
 ) -> pd.Series:
-    """Per-client fraud rate from transaction-level labels.
-
-    Joins fraud_labels (id, fraud) onto transactions and averages per client_id.
-    """
     if fraud_labels is None or fraud_labels.empty:
         return pd.Series(dtype="float32", name="fraud_rate")
 
@@ -204,7 +172,6 @@ def run_user_pca(
     n_clusters: int = 4,
     random_state: int = 42,
 ) -> PCAResult:
-    """End-to-end user-level PCA: build features, scale, fit, cluster."""
     raw = build_user_pca_features(transactions, users, cards)
     prepared = _prepare_matrix(raw)
 

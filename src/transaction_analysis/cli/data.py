@@ -32,7 +32,6 @@ def main() -> None:
     logger.info("Analysis complete.")
 
     logger.info("Training XGBoost and RandomForest models with 5-fold CV...")
-    # Resample is used to limit dataset size to 2000k rows for faster CV. Training is on full dataset anyway
     models.run(force_cross_validate=False, use_resample=False)
     logger.info("Model training and evaluation complete.")
 
