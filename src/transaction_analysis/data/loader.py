@@ -19,6 +19,10 @@ def load_all_transactions(subdirectory: str = "cleaned") -> pd.DataFrame:
     return pd.read_parquet(FRAUD_DATASET_DIR / subdirectory / "transactions_with_fraud.parquet")
 
 
+def load_known_transactions(subdirectory: str = "cleaned") -> pd.DataFrame:
+    return load_all_transactions(subdirectory).dropna(subset=["fraud"])
+
+
 def load_users(subdirectory: str = "cleaned") -> pd.DataFrame:
     return pd.read_parquet(FRAUD_DATASET_DIR / subdirectory / "users.parquet")
 
