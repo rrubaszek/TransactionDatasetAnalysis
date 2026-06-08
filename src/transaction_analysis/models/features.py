@@ -207,7 +207,7 @@ def _encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=date_cols)
 
 
-def build_features() -> tuple[pd.DataFrame, pd.Series]:
+def build_features(model_training: bool = False) -> tuple[pd.DataFrame, pd.Series]:
     """
     Full feature engineering pipeline.
 
@@ -219,7 +219,7 @@ def build_features() -> tuple[pd.DataFrame, pd.Series]:
         Binary fraud label (0 / 1).
     """
     logger.info("Loading data...")
-    transactions = loader.load_all_transactions()
+    transactions = loader.load_known_transactions() if model_training else loader.load_all_transactions()
     users = loader.load_users()
     cards = loader.load_cards()
 

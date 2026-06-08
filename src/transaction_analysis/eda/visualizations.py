@@ -216,7 +216,7 @@ def plot_top_states_by_amount(
     ax.set_yticks(range(len(top_states)))
     ax.set_yticklabels(top_states.index)
     ax.set_xlabel("Suma kwot transakcji (mln USD)")
-    ax.set_title(f"Top {top_n} stanów USA w zależności od sumy kwot transakcji", fontsize=12, fontweight="bold")
+    ax.set_title(f"Top {top_n} stanów / krajów w zależności od sumy kwot transakcji", fontsize=12, fontweight="bold")
     ax.invert_yaxis()
     ax.grid(alpha=0.3, axis="x")
 
@@ -231,11 +231,15 @@ def plot_state_fraud_rate(
     top_n: int = 5,
     min_transactions: int = 100,
 ) -> None:
-    df = transactions.loc[transactions["fraud"].notna(), ["merchant_state", "fraud"]].copy()
+    df = transactions.loc[transactions["fraud"].notna(), ["merchant_state", "transaction_type", "fraud"]].copy()
     df["fraud"] = df["fraud"].astype(bool)
-    df = df.dropna(subset=["merchant_state"])
 
-    per_state = df.groupby("merchant_state", observed=True)["fraud"].agg(txn_count="size", fraud_pct="mean")
+    bucket = df["merchant_state"].astype("object")
+    online_mask = df["transaction_type"].astype(str).str.contains("Online", case=False, na=False)
+    bucket = bucket.mask(online_mask, "Online")
+    df = df.assign(bucket=bucket).dropna(subset=["bucket"])
+
+    per_state = df.groupby("bucket", observed=True)["fraud"].agg(txn_count="size", fraud_pct="mean")
     per_state["fraud_pct"] *= 100
 
     eligible = per_state[per_state["txn_count"] >= min_transactions]
@@ -244,9 +248,11 @@ def plot_state_fraud_rate(
     if top.empty:
         return
 
+    colors = ["coral" if label == "Online" else "steelblue" for label in top.index]
+
     fig, ax = plt.subplots(figsize=(14, 6))
     x = range(len(top))
-    bars = ax.bar(x, top["fraud_pct"], color="steelblue", edgecolor="black", alpha=0.85)
+    bars = ax.bar(x, top["fraud_pct"], color=colors, edgecolor="black", alpha=0.85)
 
     for bar, pct in zip(bars, top["fraud_pct"], strict=False):
         ax.text(bar.get_x() + bar.get_width() / 2, pct, f"{pct:.2f}", ha="center", va="bottom", fontsize=8)
@@ -341,7 +347,7 @@ def plot_merchant_fraud_rate(
     ax.set_xlabel("ID sprzedawcy (merchant_id)")
     ax.set_ylabel("Procent transakcji oszukańczych (%)")
     ax.set_title(
-        f"Top {top_n} sprzedawców wg procentu transakcji oszukańczych (pogrupowani wg MCC)",
+        f"Top {top_n} sprzedawców wg procentu transakcji oszukańczych",
         fontsize=12,
         fontweight="bold",
     )
@@ -525,9 +531,9 @@ def plot_fraudster_profile(
     ax.set_yticks(range(len(prof)))
     ax.set_yticklabels(prof["feature"])
     ax.axvline(0, color="gray", linewidth=1)
-    ax.set_xlabel("Standaryzowana różnica średnich (Cohen's d):  oszust − pozostali")
+    ax.set_xlabel("Standaryzowana różnica średnich:  oszust − pozostali")
     ax.set_title(
-        f"Profil klientów oszukańczych: n={len(fraud):,} vs {len(rest):,}",
+        "Profil klientów oszukańczych",
         fontsize=12,
         fontweight="bold",
     )
@@ -576,7 +582,7 @@ def plot_fraudster_channel_mix(
             x - width / 2,
             fraud_means,
             width,
-            label=f"Oszuści (n={len(fraud):,})",
+            label="Oszuści",
             color="#ff6b6b",
             edgecolor="black",
             alpha=0.85,
@@ -585,7 +591,7 @@ def plot_fraudster_channel_mix(
             x + width / 2,
             rest_means,
             width,
-            label=f"Pozostali (n={len(rest):,})",
+            label="Pozostali",
             color="#4c72b0",
             edgecolor="black",
             alpha=0.85,
@@ -734,7 +740,7 @@ def plot_merchant_fraud_rate_volume(
         linewidth=0.3,
     )
     ax.set_xscale("log")
-    ax.set_xlabel("Liczba transakcji sprzedawcy (skala log)")
+    ax.set_xlabel("Liczba transakcji sprzedawcy")
     ax.set_ylabel("Procent transakcji oszukańczych (%)")
     ax.set_title(
         "Sprzedawcy: wolumen vs odsetek oszustw (rozmiar bąbla = kwota oszustw $)",
@@ -809,7 +815,7 @@ def plot_mcc_fraud_rate(
     ax.invert_yaxis()
     ax.set_xlabel("Procent transakcji oszukańczych (%)")
     ax.set_title(
-        f"Top {top_n} kategorii MCC wg odsetka oszustw (min {min_transactions} transakcji)",
+        f"Top {top_n} kategorii MCC wg odsetka oszustw",
         fontsize=12,
         fontweight="bold",
     )
