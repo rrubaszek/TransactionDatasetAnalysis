@@ -498,7 +498,7 @@ _FRAUDSTER_PROFILE_FEATURES: list[str] = [
 ]
 
 
-def plot_fraudster_profile(
+def plot_fraud_profile(
     profile: pd.DataFrame,
     output_dir: Path,
     features: dict[str, str] | None = None,
@@ -531,9 +531,9 @@ def plot_fraudster_profile(
     ax.set_yticks(range(len(prof)))
     ax.set_yticklabels(prof["feature"])
     ax.axvline(0, color="gray", linewidth=1)
-    ax.set_xlabel("Standaryzowana różnica średnich:  oszust − pozostali")
+    ax.set_xlabel("Standaryzowana różnica średnich:  oszukani - pozostali")
     ax.set_title(
-        "Profil klientów oszukańczych",
+        "Profil klientów oszukanych",
         fontsize=12,
         fontweight="bold",
     )
@@ -556,7 +556,6 @@ def plot_fraudster_channel_mix(
     profile: pd.DataFrame,
     output_dir: Path,
 ) -> None:
-    """Channel/timing behaviour: fraudsters vs the rest, as mean per-client shares."""
     feature_labels = {
         "share_online": "Online",
         "share_swipe": "Swipe",
@@ -582,7 +581,7 @@ def plot_fraudster_channel_mix(
             x - width / 2,
             fraud_means,
             width,
-            label="Oszuści",
+            label="Oszukani",
             color="#ff6b6b",
             edgecolor="black",
             alpha=0.85,
@@ -600,7 +599,7 @@ def plot_fraudster_channel_mix(
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.set_ylabel("Średni udział transakcji klienta (%)")
-    ax.set_title("Kanały i pory transakcji: oszuści vs pozostali", fontsize=12, fontweight="bold")
+    ax.set_title("Kanały i pory transakcji: oszukani vs pozostali", fontsize=12, fontweight="bold")
     ax.legend()
     ax.grid(alpha=0.3, axis="y")
     for bars in bar_groups:
@@ -652,7 +651,7 @@ def plot_fraud_frequent_age(
         edgecolor="black",
         alpha=0.6,
         density=True,
-        label=f"Najczęstsi oszuści — top {top_frac:.0%} (n={len(top):,})",
+        label=f"Najczęściej oszukani klienci — top {top_frac:.0%} (n={len(top):,})",
     )
     axes[0].axvline(
         top["age"].median(),
@@ -662,7 +661,7 @@ def plot_fraud_frequent_age(
     )
     axes[0].set_xlabel("Wiek klienta")
     axes[0].set_ylabel("Gęstość")
-    axes[0].set_title("Rozkład wieku najczęstszych oszustów", fontsize=12, fontweight="bold")
+    axes[0].set_title("Rozkład wieku oszukanych klientów", fontsize=12, fontweight="bold")
     axes[0].legend(fontsize=9)
     axes[0].grid(alpha=0.3)
 
